@@ -1,13 +1,9 @@
-# display-info
-
-Cross-platform get display info
-
-## example
-
-```rust
 use display_info::DisplayInfo;
+use std::time::Instant;
 
 fn main() {
+  let start = Instant::now();
+
   let display_infos = DisplayInfo::all();
   for display_info in display_infos {
     println!(
@@ -33,5 +29,5 @@ fn main() {
     display_info.scale,
     display_info.rotation
   );
+  println!("运行耗时: {:?}", start.elapsed());
 }
-```
