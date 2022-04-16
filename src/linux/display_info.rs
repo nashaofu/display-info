@@ -69,7 +69,7 @@ impl DisplayInfo {
   }
 
   pub fn from_point(x: i32, y: i32) -> Option<DisplayInfo> {
-    let display_infos = get_display_infos();
+    let display_infos = DisplayInfo::all();
     let display_info = display_infos.iter().find(|&&display_info| {
       x >= display_info.x
         && x <= display_info.x + display_info.width as i32
