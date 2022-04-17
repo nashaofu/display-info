@@ -83,42 +83,40 @@ fn create_display_info(monitor_info_exw: MONITORINFOEXW) -> DisplayInfo {
   }
 }
 
-impl DisplayInfo {
-  pub fn all() -> Vec<DisplayInfo> {
-    unsafe {
-      let h_monitors = Box::into_raw(Box::new(Vec::<MONITORINFOEXW>::new()));
-      match EnumDisplayMonitors(
-        HDC::default(),
-        ptr::null_mut(),
-        Some(monitor_enum_proc),
-        LPARAM(h_monitors as isize),
-      ) {
-        BOOL(0) => vec![],
-        _ => {
-          let display_infos = Box::from_raw(h_monitors)
-            .iter()
-            .map(|monitor_info_exw| create_display_info(*monitor_info_exw))
-            .collect();
+pub fn get_all() -> Vec<DisplayInfo> {
+  unsafe {
+    let h_monitors = Box::into_raw(Box::new(Vec::<MONITORINFOEXW>::new()));
+    match EnumDisplayMonitors(
+      HDC::default(),
+      ptr::null_mut(),
+      Some(monitor_enum_proc),
+      LPARAM(h_monitors as isize),
+    ) {
+      BOOL(0) => vec![],
+      _ => {
+        let display_infos = Box::from_raw(h_monitors)
+          .iter()
+          .map(|monitor_info_exw| create_display_info(*monitor_info_exw))
+          .collect();
 
-          display_infos
-        }
+        display_infos
       }
     }
   }
+}
 
-  pub fn from_point(x: i32, y: i32) -> Option<DisplayInfo> {
-    let point = POINT { x, y };
-    unsafe {
-      let h_monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONULL);
+pub fn get_from_point(x: i32, y: i32) -> Option<DisplayInfo> {
+  let point = POINT { x, y };
+  unsafe {
+    let h_monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONULL);
 
-      if h_monitor.is_invalid() {
-        return None;
-      }
+    if h_monitor.is_invalid() {
+      return None;
+    }
 
-      match get_monitor_info_exw(h_monitor) {
-        Some(monitor_info_exw) => Some(create_display_info(monitor_info_exw)),
-        None => None,
-      }
+    match get_monitor_info_exw(h_monitor) {
+      Some(monitor_info_exw) => Some(create_display_info(monitor_info_exw)),
+      None => None,
     }
   }
 }
