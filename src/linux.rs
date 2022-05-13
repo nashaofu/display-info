@@ -39,7 +39,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
     let scale = xft_dpi / 96.0;
 
     let mut display_infos = Vec::new();
-    
+
     for output in outputs.iter() {
       let output_info_ptr = XRRGetOutputInfo(display_ptr, screen_resources_ptr, *output);
       let output_info = *output_info_ptr;
@@ -60,8 +60,8 @@ pub fn get_all() -> Vec<DisplayInfo> {
 
       let display_info = DisplayInfo {
         id: *output as u32,
-        x: crtc_info.x,
-        y: crtc_info.y,
+        x: ((crtc_info.x as f32) / scale) as i32,
+        y: ((crtc_info.y as f32) / scale) as i32,
         width: ((crtc_info.width as f32) / scale) as u32,
         height: ((crtc_info.height as f32) / scale) as u32,
         scale,
