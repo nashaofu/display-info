@@ -1,6 +1,6 @@
 # display-info
 
-Cross-platform get display info
+Cross-platform get display info for MacOS、Windows、Linux. Like [electron Display Object](https://www.electronjs.org/docs/latest/api/structures/display)
 
 ## example
 
