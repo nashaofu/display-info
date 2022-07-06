@@ -66,11 +66,10 @@ pub fn get_from_point(x: i32, y: i32) -> Option<DisplayInfo> {
   if display_count == 0 {
     return None;
   }
+  
+  let display_id = display_ids.get(0)?;
 
-  match display_ids.get(0) {
-    Some(display_id) => Some(create_display_info(*display_id)),
-    None => None,
-  }
+  Some(create_display_info(*display_id))
 }
 
 #[link(name = "CoreGraphics", kind = "framework")]

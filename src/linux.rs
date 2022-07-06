@@ -1,12 +1,64 @@
 use crate::DisplayInfo;
-use std::{ffi::CString, ptr, slice};
+use std::{
+  ffi::{CStr, CString},
+  os::raw::c_char,
+  ptr, slice,
+};
 use x11::{
-  xlib::{XDefaultRootWindow, XOpenDisplay, XResourceManagerString},
+  xlib::{
+    Display, XCloseDisplay, XDefaultRootWindow, XOpenDisplay, XResourceManagerString,
+    XrmDestroyDatabase, XrmGetResource, XrmGetStringDatabase, XrmValue,
+  },
   xrandr::{
     XRRFreeCrtcInfo, XRRFreeScreenResources, XRRGetCrtcInfo, XRRGetOutputInfo,
     XRRGetScreenResourcesCurrent,
   },
 };
+
+fn get_xft_dpi(display_ptr: *mut Display) -> f32 {
+  unsafe {
+    let resource_manager_string_ptr = XResourceManagerString(display_ptr);
+
+    if resource_manager_string_ptr.is_null() {
+      return 96.0;
+    }
+
+    let string_database_ptr = XrmGetStringDatabase(resource_manager_string_ptr);
+
+    if string_database_ptr.is_null() {
+      return 96.0;
+    }
+
+    let mut xrm_value = XrmValue {
+      size: 0,
+      addr: ptr::null_mut(),
+    };
+
+    let mut str_type: *mut c_char = ptr::null_mut();
+    let str_name = CString::new("Xft.dpi").unwrap();
+    let str_class = CString::new("Xft.Dpi").unwrap();
+
+    let result = XrmGetResource(
+      string_database_ptr,
+      str_name.as_ptr(),
+      str_class.as_ptr(),
+      &mut str_type,
+      &mut xrm_value,
+    );
+
+    XrmDestroyDatabase(string_database_ptr);
+
+    if result == 0 || xrm_value.addr.is_null() {
+      return 96.0;
+    }
+
+    CStr::from_ptr(xrm_value.addr)
+      .to_str()
+      .unwrap_or("96.0")
+      .parse::<f32>()
+      .unwrap_or(96.0)
+  }
+}
 
 pub fn get_all() -> Vec<DisplayInfo> {
   unsafe {
@@ -24,17 +76,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
     let noutput = screen_resources.noutput as usize;
     let outputs = slice::from_raw_parts(screen_resources.outputs, noutput);
 
-    let resource_manager_string_cstring = CString::from_raw(XResourceManagerString(display_ptr));
-    let resource_manager_string = resource_manager_string_cstring.to_string_lossy();
-
-    let prefix = "Xft.dpi:\t";
-
-    let xft_dpi = resource_manager_string
-      .split("\n")
-      .find(|str| str.starts_with(prefix))
-      .map(|str| str.replace(prefix, ""))
-      .map(|dpi| dpi.parse::<f32>().unwrap_or(96.0))
-      .unwrap_or(96.0);
+    let xft_dpi = get_xft_dpi(display_ptr);
 
     let scale = xft_dpi / 96.0;
 
@@ -74,6 +116,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
     }
 
     XRRFreeScreenResources(screen_resources_ptr);
+    XCloseDisplay(display_ptr);
 
     display_infos
   }
