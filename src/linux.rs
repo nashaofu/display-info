@@ -61,16 +61,24 @@ fn get_xft_dpi(display_ptr: *mut Display) -> f32 {
 }
 
 pub fn get_all() -> Vec<DisplayInfo> {
+  let mut display_infos = Vec::new();
+
   unsafe {
     let display_ptr = XOpenDisplay(ptr::null_mut());
 
     if display_ptr.is_null() {
-      return vec![];
+      return display_infos;
     }
 
     let window_id = XDefaultRootWindow(display_ptr);
 
     let screen_resources_ptr = XRRGetScreenResourcesCurrent(display_ptr, window_id);
+    
+    if screen_resources_ptr.is_null() {
+      XCloseDisplay(display_ptr);
+      return display_infos;
+    }
+
     let screen_resources = *screen_resources_ptr;
 
     let noutput = screen_resources.noutput as usize;
@@ -80,10 +88,14 @@ pub fn get_all() -> Vec<DisplayInfo> {
 
     let scale = xft_dpi / 96.0;
 
-    let mut display_infos = Vec::new();
 
     for output in outputs.iter() {
       let output_info_ptr = XRRGetOutputInfo(display_ptr, screen_resources_ptr, *output);
+
+      if output_info_ptr.is_null() {
+        continue;
+      }
+
       let output_info = *output_info_ptr;
 
       if output_info.connection != 0 {
@@ -91,6 +103,11 @@ pub fn get_all() -> Vec<DisplayInfo> {
       }
 
       let crtc_info_ptr = XRRGetCrtcInfo(display_ptr, screen_resources_ptr, output_info.crtc);
+
+      if crtc_info_ptr.is_null() {
+        continue;
+      }
+
       let crtc_info = *crtc_info_ptr;
 
       let rotation = match crtc_info.rotation {
@@ -117,9 +134,9 @@ pub fn get_all() -> Vec<DisplayInfo> {
 
     XRRFreeScreenResources(screen_resources_ptr);
     XCloseDisplay(display_ptr);
-
-    display_infos
   }
+
+  display_infos
 }
 
 pub fn get_from_point(x: i32, y: i32) -> Option<DisplayInfo> {
