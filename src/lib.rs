@@ -22,6 +22,7 @@ pub struct DisplayInfo {
   pub height: u32,
   pub scale: f32,
   pub rotation: f32,
+  pub primary: bool,
 }
 
 impl DisplayInfo {

@@ -70,6 +70,7 @@ fn create_display_info(monitor_info_exw: MONITORINFOEXW) -> DisplayInfo {
     let sz_device = monitor_info_exw.szDevice.as_ptr();
     let sz_device_string = U16CString::from_ptr_str(sz_device).to_string_lossy();
     let rc_monitor = monitor_info_exw.monitorInfo.rcMonitor;
+    let dw_flags = monitor_info_exw.monitorInfo.dwFlags;
 
     DisplayInfo {
       id: digest(sz_device_string.as_bytes()),
@@ -79,6 +80,7 @@ fn create_display_info(monitor_info_exw: MONITORINFOEXW) -> DisplayInfo {
       height: (rc_monitor.bottom - rc_monitor.top) as u32,
       scale: get_scale(sz_device),
       rotation: get_display_rotation(sz_device),
+      primary: dw_flags == 1u32,
     }
   }
 }

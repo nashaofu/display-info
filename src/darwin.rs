@@ -23,6 +23,7 @@ fn create_display_info(id: CGDirectDisplayID) -> DisplayInfo {
     height: size.height as u32,
     scale,
     rotation,
+    primary: cg_display.is_main(),
   }
 }
 
