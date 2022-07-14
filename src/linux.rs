@@ -86,7 +86,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
 
     let xft_dpi = get_xft_dpi(display_ptr);
 
-    let scale = xft_dpi / 96.0;
+    let scale_factor = xft_dpi / 96.0;
 
     let primary_output = XRRGetOutputPrimary(display_ptr, window_id);
 
@@ -120,13 +120,13 @@ pub fn get_all() -> Vec<DisplayInfo> {
 
       let display_info = DisplayInfo {
         id: *output as u32,
-        x: ((crtc_info.x as f32) / scale) as i32,
-        y: ((crtc_info.y as f32) / scale) as i32,
-        width: ((crtc_info.width as f32) / scale) as u32,
-        height: ((crtc_info.height as f32) / scale) as u32,
-        scale,
+        x: ((crtc_info.x as f32) / scale_factor) as i32,
+        y: ((crtc_info.y as f32) / scale_factor) as i32,
+        width: ((crtc_info.width as f32) / scale_factor) as u32,
+        height: ((crtc_info.height as f32) / scale_factor) as u32,
         rotation,
-        primary: primary_output == *output,
+        scale_factor,
+        is_primary: primary_output == *output,
       };
 
       XRRFreeCrtcInfo(crtc_info_ptr);

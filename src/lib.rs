@@ -20,9 +20,9 @@ pub struct DisplayInfo {
   pub y: i32,
   pub width: u32,
   pub height: u32,
-  pub scale: f32,
   pub rotation: f32,
-  pub primary: bool,
+  pub scale_factor: f32,
+  pub is_primary: bool,
 }
 
 impl DisplayInfo {
