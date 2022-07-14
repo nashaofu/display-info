@@ -10,7 +10,7 @@ use x11::{
     XrmDestroyDatabase, XrmGetResource, XrmGetStringDatabase, XrmValue,
   },
   xrandr::{
-    XRRFreeCrtcInfo, XRRFreeScreenResources, XRRGetCrtcInfo, XRRGetOutputInfo,
+    XRRFreeCrtcInfo, XRRFreeScreenResources, XRRGetCrtcInfo, XRRGetOutputInfo, XRRGetOutputPrimary,
     XRRGetScreenResourcesCurrent,
   },
 };
@@ -73,7 +73,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
     let window_id = XDefaultRootWindow(display_ptr);
 
     let screen_resources_ptr = XRRGetScreenResourcesCurrent(display_ptr, window_id);
-    
+
     if screen_resources_ptr.is_null() {
       XCloseDisplay(display_ptr);
       return display_infos;
@@ -88,6 +88,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
 
     let scale = xft_dpi / 96.0;
 
+    let primary_output = XRRGetOutputPrimary(display_ptr, window_id);
 
     for output in outputs.iter() {
       let output_info_ptr = XRRGetOutputInfo(display_ptr, screen_resources_ptr, *output);
@@ -125,6 +126,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
         height: ((crtc_info.height as f32) / scale) as u32,
         scale,
         rotation,
+        primary: primary_output == *output,
       };
 
       XRRFreeCrtcInfo(crtc_info_ptr);
