@@ -27,24 +27,7 @@ fn get_monitor_info_exw(h_monitor: HMONITOR) -> Option<MONITORINFOEXW> {
   }
 }
 
-fn get_scale(sz_device: *const u16) -> f32 {
-  unsafe {
-    let h_dc = CreateDCW(
-      PCWSTR(sz_device),
-      PCWSTR(sz_device),
-      PCWSTR(ptr::null()),
-      ptr::null(),
-    );
-    let logical_width = GetDeviceCaps(h_dc, HORZRES);
-    let physical_width = GetDeviceCaps(h_dc, DESKTOPHORZRES);
-
-    DeleteDC(h_dc);
-
-    physical_width as f32 / logical_width as f32
-  }
-}
-
-fn get_display_rotation(sz_device: *const u16) -> f32 {
+fn get_rotation(sz_device: *const u16) -> f32 {
   unsafe {
     let mut dev_modew: DEVMODEW = DEVMODEW::default();
     dev_modew.dmSize = mem::size_of::<DEVMODEW>() as u16;
@@ -65,11 +48,29 @@ fn get_display_rotation(sz_device: *const u16) -> f32 {
   }
 }
 
+fn get_scale_factor(sz_device: *const u16) -> f32 {
+  unsafe {
+    let h_dc = CreateDCW(
+      PCWSTR(sz_device),
+      PCWSTR(sz_device),
+      PCWSTR(ptr::null()),
+      ptr::null(),
+    );
+    let logical_width = GetDeviceCaps(h_dc, HORZRES);
+    let physical_width = GetDeviceCaps(h_dc, DESKTOPHORZRES);
+
+    DeleteDC(h_dc);
+
+    physical_width as f32 / logical_width as f32
+  }
+}
+
 fn create_display_info(monitor_info_exw: MONITORINFOEXW) -> DisplayInfo {
   unsafe {
     let sz_device = monitor_info_exw.szDevice.as_ptr();
     let sz_device_string = U16CString::from_ptr_str(sz_device).to_string_lossy();
     let rc_monitor = monitor_info_exw.monitorInfo.rcMonitor;
+    let dw_flags = monitor_info_exw.monitorInfo.dwFlags;
 
     DisplayInfo {
       id: digest(sz_device_string.as_bytes()),
@@ -77,8 +78,9 @@ fn create_display_info(monitor_info_exw: MONITORINFOEXW) -> DisplayInfo {
       y: rc_monitor.top,
       width: (rc_monitor.right - rc_monitor.left) as u32,
       height: (rc_monitor.bottom - rc_monitor.top) as u32,
-      scale: get_scale(sz_device),
-      rotation: get_display_rotation(sz_device),
+      rotation: get_rotation(sz_device),
+      scale_factor: get_scale_factor(sz_device),
+      is_primary: dw_flags == 1u32,
     }
   }
 }
