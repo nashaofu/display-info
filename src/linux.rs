@@ -95,6 +95,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
       let output_info_ptr = XRRGetOutputInfo(display_ptr, screen_resources_ptr, *output);
 
       if output_info_ptr.is_null() {
+        XRRFreeOutputInfo(output_info_ptr);
         continue;
       }
 
@@ -109,6 +110,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
 
       if crtc_info_ptr.is_null() {
         XRRFreeOutputInfo(output_info_ptr);
+        XRRFreeCrtcInfo(crtc_info_ptr);
         continue;
       }
 
