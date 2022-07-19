@@ -1,19 +1,21 @@
-use crate::DisplayInfo;
 use std::{
   ffi::{CStr, CString},
   os::raw::c_char,
   ptr, slice,
 };
+
 use x11::{
   xlib::{
     Display, XCloseDisplay, XDefaultRootWindow, XOpenDisplay, XResourceManagerString,
     XrmDestroyDatabase, XrmGetResource, XrmGetStringDatabase, XrmValue,
   },
   xrandr::{
-    XRRFreeCrtcInfo, XRRFreeScreenResources, XRRGetCrtcInfo, XRRGetOutputInfo, XRRGetOutputPrimary,
-    XRRGetScreenResourcesCurrent,
+    XRRFreeCrtcInfo, XRRFreeOutputInfo, XRRFreeScreenResources, XRRGetCrtcInfo, XRRGetOutputInfo,
+    XRRGetOutputPrimary, XRRGetScreenResourcesCurrent,
   },
 };
+
+use crate::DisplayInfo;
 
 fn get_xft_dpi(display_ptr: *mut Display) -> f32 {
   unsafe {
@@ -100,12 +102,14 @@ pub fn get_all() -> Vec<DisplayInfo> {
       let output_info = *output_info_ptr;
 
       if output_info.connection != 0 {
+        XRRFreeOutputInfo(output_info_ptr);
         continue;
       }
 
       let crtc_info_ptr = XRRGetCrtcInfo(display_ptr, screen_resources_ptr, output_info.crtc);
 
       if crtc_info_ptr.is_null() {
+        XRRFreeOutputInfo(output_info_ptr);
         continue;
       }
 
@@ -129,6 +133,7 @@ pub fn get_all() -> Vec<DisplayInfo> {
         is_primary: primary_output == *output,
       };
 
+      XRRFreeOutputInfo(output_info_ptr);
       XRRFreeCrtcInfo(crtc_info_ptr);
 
       display_infos.push(display_info);
