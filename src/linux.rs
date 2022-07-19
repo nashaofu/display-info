@@ -1,3 +1,4 @@
+use crate::DisplayInfo;
 use std::{
   ffi::{CStr, CString},
   os::raw::c_char,
@@ -14,8 +15,6 @@ use x11::{
     XRRGetOutputPrimary, XRRGetScreenResourcesCurrent,
   },
 };
-
-use crate::DisplayInfo;
 
 fn get_xft_dpi(display_ptr: *mut Display) -> f32 {
   unsafe {
