@@ -15,7 +15,7 @@ core-graphics = "0.22.3"
 
 [target.'cfg(target_os="windows")'.dependencies]
 sfhash = "0.1.1"
-widestring = "0.5.1"
+widestring = "1.0.2"
 
 [target.'cfg(target_os = "windows")'.dependencies.windows]
 version = "0.39.0"
