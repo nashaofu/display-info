@@ -1,10 +1,25 @@
 use crate::{DisplayInfo, DisplayInfoError};
 use std::str;
 use xcb::{
-  randr::{GetCrtcInfo, GetMonitors, GetOutputInfo, Output, Rotation},
+  randr::{GetCrtcInfo, GetMonitors, GetOutputInfo, MonitorInfo, Output, Rotation},
   x::{GetProperty, Screen, ATOM_RESOURCE_MANAGER, ATOM_STRING},
   Connection, Xid,
 };
+
+impl DisplayInfo {
+  fn new(monitor_info: &MonitorInfo, output: &Output, rotation: f32, scale_factor: f32) -> Self {
+    DisplayInfo {
+      id: output.resource_id(),
+      x: ((monitor_info.x() as f32) / scale_factor) as i32,
+      y: ((monitor_info.y() as f32) / scale_factor) as i32,
+      width: ((monitor_info.width() as f32) / scale_factor) as u32,
+      height: ((monitor_info.height() as f32) / scale_factor) as u32,
+      rotation,
+      scale_factor,
+      is_primary: monitor_info.primary(),
+    }
+  }
+}
 
 fn get_scale_factor(conn: &Connection, screen: &Screen) -> Result<f32, DisplayInfoError> {
   let xft_dpi_prefix = "Xft.dpi:\t";
@@ -90,16 +105,12 @@ pub fn get_all() -> Result<Vec<DisplayInfo>, DisplayInfoError> {
 
     let rotation = get_rotation(&conn, output).unwrap_or(0.0);
 
-    display_infos.push(DisplayInfo {
-      id: output.resource_id(),
-      x: ((monitor_info.x() as f32) / scale_factor) as i32,
-      y: ((monitor_info.y() as f32) / scale_factor) as i32,
-      width: ((monitor_info.width() as f32) / scale_factor) as u32,
-      height: ((monitor_info.height() as f32) / scale_factor) as u32,
+    display_infos.push(DisplayInfo::new(
+      monitor_info,
+      output,
       rotation,
       scale_factor,
-      is_primary: monitor_info.primary(),
-    });
+    ));
   }
 
   Ok(display_infos)
