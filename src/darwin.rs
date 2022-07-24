@@ -1,4 +1,4 @@
-use crate::{DisplayInfo, DisplayInfoError};
+use crate::DisplayInfo;
 use core_graphics::display::{CGDirectDisplayID, CGDisplay, CGError, CGPoint, CGRect};
 
 impl DisplayInfo {
@@ -29,9 +29,8 @@ impl DisplayInfo {
   }
 }
 
-pub fn get_all() -> Result<Vec<DisplayInfo>, DisplayInfoError> {
-  let display_ids =
-    CGDisplay::active_displays().map_err(|_| DisplayInfoError::new("Can't get active displays"))?;
+pub fn get_all() -> Option<Vec<DisplayInfo>> {
+  let display_ids = CGDisplay::active_displays().ok()?;
 
   let mut display_infos: Vec<DisplayInfo> = Vec::with_capacity(display_ids.len());
 
@@ -39,10 +38,10 @@ pub fn get_all() -> Result<Vec<DisplayInfo>, DisplayInfoError> {
     display_infos.push(DisplayInfo::new(display_id));
   }
 
-  Ok(display_infos)
+  Some(display_infos)
 }
 
-pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo, DisplayInfoError> {
+pub fn get_from_point(x: i32, y: i32) -> Option<DisplayInfo> {
   let point = CGPoint {
     x: x as f64,
     y: y as f64,
@@ -61,14 +60,12 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo, DisplayInfoError> {
   };
 
   if cg_error != 0 || display_count == 0 {
-    return Err(DisplayInfoError::new("Can't find display"));
+    return None;
   }
 
-  let display_id = display_ids
-    .get(0)
-    .ok_or(DisplayInfoError::new("Get display id error"))?;
+  let display_id = display_ids.get(0)?;
 
-  Ok(DisplayInfo::new(*display_id))
+  Some(DisplayInfo::new(*display_id))
 }
 
 #[link(name = "CoreGraphics", kind = "framework")]

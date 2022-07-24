@@ -1,5 +1,3 @@
-use std::error::Error;
-
 #[cfg(target_os = "macos")]
 mod darwin;
 #[cfg(target_os = "macos")]
@@ -15,21 +13,6 @@ mod linux;
 #[cfg(target_os = "linux")]
 use linux::*;
 
-#[derive(Debug, Clone)]
-pub struct DisplayInfoError(String);
-
-impl<T: Error> From<T> for DisplayInfoError {
-  fn from(err: T) -> DisplayInfoError {
-    DisplayInfoError(err.to_string())
-  }
-}
-
-impl DisplayInfoError {
-  pub fn new(str: &str) -> Self {
-    DisplayInfoError(str.to_string())
-  }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct DisplayInfo {
   pub id: u32,
@@ -43,11 +26,11 @@ pub struct DisplayInfo {
 }
 
 impl DisplayInfo {
-  pub fn all() -> Result<Vec<DisplayInfo>, DisplayInfoError> {
+  pub fn all() -> Option<Vec<DisplayInfo>> {
     get_all()
   }
 
-  pub fn from_point(x: i32, y: i32) -> Result<DisplayInfo, DisplayInfoError> {
+  pub fn from_point(x: i32, y: i32) -> Option<DisplayInfo> {
     get_from_point(x, y)
   }
 }

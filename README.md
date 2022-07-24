@@ -6,33 +6,17 @@ Cross-platform get display info for MacOS、Windows、Linux. Like [electron Disp
 
 ```rust
 use display_info::DisplayInfo;
+use std::time::Instant;
 
 fn main() {
-  let display_infos = DisplayInfo::all();
+  let start = Instant::now();
+
+  let display_infos = DisplayInfo::all().unwrap();
   for display_info in display_infos {
-    println!(
-      "DisplayInfo:{} x: {} y: {} width: {} height: {} scale_factor: {} rotation: {} is_primary: {}\n",
-      display_info.id,
-      display_info.x,
-      display_info.y,
-      display_info.width,
-      display_info.height,
-      display_info.scale_factor,
-      display_info.rotation,
-      display_info.is_primary
-    );
+    println!("display_info {:?}", display_info);
   }
   let display_info = DisplayInfo::from_point(100, 100).unwrap();
   println!("display_info {:?}", display_info);
-  println!(
-    "DisplayInfo:{} x: {} y: {} width: {} height: {} scale_factor: {} rotation: {}\n",
-    display_info.id,
-    display_info.x,
-    display_info.y,
-    display_info.width,
-    display_info.height,
-    display_info.scale_factor,
-    display_info.rotation
-  );
+  println!("运行耗时: {:?}", start.elapsed());
 }
 ```
