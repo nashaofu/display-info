@@ -69,7 +69,7 @@ fn get_monitor_info_exw(h_monitor: HMONITOR) -> Option<MONITORINFOEXW> {
   monitor_info_exw.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
   let monitor_info_exw_ptr = <*mut _>::cast(&mut monitor_info_exw);
 
-  unsafe { GetMonitorInfoW(h_monitor, monitor_info_exw_ptr).ok()? };
+  unsafe { GetMonitorInfoW(h_monitor, monitor_info_exw_ptr).ok().ok()? };
 
   Some(monitor_info_exw)
 }
@@ -80,7 +80,9 @@ fn get_rotation(sz_device: *const u16) -> Option<f32> {
   let dev_modew_ptr = <*mut _>::cast(&mut dev_modew);
 
   unsafe {
-    EnumDisplaySettingsExW(PCWSTR(sz_device), ENUM_CURRENT_SETTINGS, dev_modew_ptr, 0).ok()?;
+    EnumDisplaySettingsExW(PCWSTR(sz_device), ENUM_CURRENT_SETTINGS, dev_modew_ptr, 0)
+      .ok()
+      .ok()?;
   };
 
   let dm_display_orientation = unsafe { dev_modew.Anonymous1.Anonymous2.dmDisplayOrientation };
@@ -114,6 +116,7 @@ pub fn get_all() -> Option<Vec<DisplayInfo>> {
       Some(monitor_enum_proc),
       LPARAM(h_monitors_mut_ptr as isize),
     )
+    .ok()
     .ok()?
   };
 
@@ -150,11 +153,11 @@ extern "system" fn monitor_enum_proc(
     let state = Box::leak(Box::from_raw(state.0 as *mut Vec<MONITORINFOEXW>));
 
     match get_monitor_info_exw(h_monitor) {
-      Ok(monitor_info_exw) => {
+      Some(monitor_info_exw) => {
         state.push(monitor_info_exw);
         BOOL::from(true)
       }
-      Err(_) => BOOL::from(false),
+      None => BOOL::from(false),
     }
   }
 }
