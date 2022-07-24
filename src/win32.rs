@@ -1,4 +1,4 @@
-use crate::DisplayInfo;
+use crate::{DisplayInfo, DisplayInfoError};
 use sfhash::digest;
 use std::{mem, ptr};
 use widestring::U16CString;
@@ -7,68 +7,18 @@ use windows::{
   Win32::{
     Foundation::{BOOL, LPARAM, POINT, RECT},
     Graphics::Gdi::{
-      CreateDCW, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW, GetDeviceCaps,
-      GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW, ENUM_CURRENT_SETTINGS, HDC,
-      HMONITOR, HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
+      CreateDCW, CreatedHDC, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW, GetDeviceCaps,
+      GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW, ENUM_CURRENT_SETTINGS,
+      GET_DEVICE_CAPS_INDEX, HDC, HMONITOR, HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
     },
   },
 };
 
-fn get_monitor_info_exw(h_monitor: HMONITOR) -> Option<MONITORINFOEXW> {
-  unsafe {
-    let mut monitor_info_exw: MONITORINFOEXW = mem::zeroed();
-    monitor_info_exw.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
-    let monitor_info_exw_ptr = <*mut _>::cast(&mut monitor_info_exw);
-
-    match GetMonitorInfoW(h_monitor, monitor_info_exw_ptr) {
-      BOOL(0) => None,
-      _ => Some(monitor_info_exw),
-    }
-  }
-}
-
-fn get_rotation(sz_device: *const u16) -> f32 {
-  unsafe {
-    let mut dev_modew: DEVMODEW = DEVMODEW::default();
-    dev_modew.dmSize = mem::size_of::<DEVMODEW>() as u16;
-    let dev_modew_ptr = <*mut _>::cast(&mut dev_modew);
-
-    let dm_display_orientation =
-      match EnumDisplaySettingsExW(PCWSTR(sz_device), ENUM_CURRENT_SETTINGS, dev_modew_ptr, 0) {
-        BOOL(0) => None,
-        _ => Some(dev_modew.Anonymous1.Anonymous2.dmDisplayOrientation),
-      };
-
-    match dm_display_orientation {
-      Some(1) => 90.0,
-      Some(2) => 180.0,
-      Some(3) => 270.0,
-      _ => 0.0,
-    }
-  }
-}
-
-fn get_scale_factor(sz_device: *const u16) -> f32 {
-  unsafe {
-    let h_dc = CreateDCW(
-      PCWSTR(sz_device),
-      PCWSTR(sz_device),
-      PCWSTR(ptr::null()),
-      ptr::null(),
-    );
-    let logical_width = GetDeviceCaps(h_dc, HORZRES);
-    let physical_width = GetDeviceCaps(h_dc, DESKTOPHORZRES);
-
-    DeleteDC(h_dc);
-
-    physical_width as f32 / logical_width as f32
-  }
-}
-
-fn create_display_info(monitor_info_exw: MONITORINFOEXW) -> DisplayInfo {
-  unsafe {
+impl DisplayInfo {
+  fn new(monitor_info_exw: &MONITORINFOEXW) -> Self {
     let sz_device = monitor_info_exw.szDevice.as_ptr();
-    let sz_device_string = U16CString::from_ptr_str(sz_device).to_string_lossy();
+
+    let sz_device_string = unsafe { U16CString::from_ptr_str(sz_device).to_string_lossy() };
     let rc_monitor = monitor_info_exw.monitorInfo.rcMonitor;
     let dw_flags = monitor_info_exw.monitorInfo.dwFlags;
 
@@ -78,49 +28,116 @@ fn create_display_info(monitor_info_exw: MONITORINFOEXW) -> DisplayInfo {
       y: rc_monitor.top,
       width: (rc_monitor.right - rc_monitor.left) as u32,
       height: (rc_monitor.bottom - rc_monitor.top) as u32,
-      rotation: get_rotation(sz_device),
+      rotation: get_rotation(sz_device).unwrap_or(0.0),
       scale_factor: get_scale_factor(sz_device),
       is_primary: dw_flags == 1u32,
     }
   }
 }
 
-pub fn get_all() -> Vec<DisplayInfo> {
-  unsafe {
-    let h_monitors = Box::into_raw(Box::new(Vec::<MONITORINFOEXW>::new()));
-    match EnumDisplayMonitors(
-      HDC::default(),
-      ptr::null_mut(),
-      Some(monitor_enum_proc),
-      LPARAM(h_monitors as isize),
-    ) {
-      BOOL(0) => vec![],
-      _ => {
-        let display_infos = Box::from_raw(h_monitors)
-          .iter()
-          .map(|monitor_info_exw| create_display_info(*monitor_info_exw))
-          .collect();
+struct CreatedHDCBox(CreatedHDC);
 
-        display_infos
-      }
-    }
+impl Drop for CreatedHDCBox {
+  fn drop(&mut self) {
+    unsafe {
+      DeleteDC(self.0);
+    };
   }
 }
 
-pub fn get_from_point(x: i32, y: i32) -> Option<DisplayInfo> {
-  let point = POINT { x, y };
-  unsafe {
-    let h_monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONULL);
+impl CreatedHDCBox {
+  fn new(sz_device: *const u16) -> Self {
+    let h_dc = unsafe {
+      CreateDCW(
+        PCWSTR(sz_device),
+        PCWSTR(sz_device),
+        PCWSTR(ptr::null()),
+        ptr::null(),
+      )
+    };
 
-    if h_monitor.is_invalid() {
-      return None;
-    }
-
-    match get_monitor_info_exw(h_monitor) {
-      Some(monitor_info_exw) => Some(create_display_info(monitor_info_exw)),
-      None => None,
-    }
+    CreatedHDCBox(h_dc)
   }
+
+  fn get_device_caps(&self, index: GET_DEVICE_CAPS_INDEX) -> i32 {
+    unsafe { GetDeviceCaps(self.0, index) }
+  }
+}
+
+fn get_monitor_info_exw(h_monitor: HMONITOR) -> Result<MONITORINFOEXW, DisplayInfoError> {
+  let mut monitor_info_exw: MONITORINFOEXW = unsafe { mem::zeroed() };
+  monitor_info_exw.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
+  let monitor_info_exw_ptr = <*mut _>::cast(&mut monitor_info_exw);
+
+  unsafe { GetMonitorInfoW(h_monitor, monitor_info_exw_ptr).ok()? };
+
+  Ok(monitor_info_exw)
+}
+
+fn get_rotation(sz_device: *const u16) -> Result<f32, DisplayInfoError> {
+  let mut dev_modew: DEVMODEW = DEVMODEW::default();
+  dev_modew.dmSize = mem::size_of::<DEVMODEW>() as u16;
+  let dev_modew_ptr = <*mut _>::cast(&mut dev_modew);
+
+  unsafe {
+    EnumDisplaySettingsExW(PCWSTR(sz_device), ENUM_CURRENT_SETTINGS, dev_modew_ptr, 0).ok()?;
+  };
+
+  let dm_display_orientation = unsafe { dev_modew.Anonymous1.Anonymous2.dmDisplayOrientation };
+
+  let rotation = match dm_display_orientation {
+    0 => 0.0,
+    1 => 90.0,
+    2 => 180.0,
+    3 => 270.0,
+    _ => 0.0,
+  };
+
+  Ok(rotation)
+}
+
+fn get_scale_factor(sz_device: *const u16) -> f32 {
+  let wh_dc = CreatedHDCBox::new(sz_device);
+  let logical_width = wh_dc.get_device_caps(HORZRES);
+  let physical_width = wh_dc.get_device_caps(DESKTOPHORZRES);
+
+  physical_width as f32 / logical_width as f32
+}
+
+pub fn get_all() -> Result<Vec<DisplayInfo>, DisplayInfoError> {
+  let h_monitors_mut_ptr = Box::into_raw(Box::new(Vec::new()));
+
+  unsafe {
+    EnumDisplayMonitors(
+      HDC::default(),
+      ptr::null_mut(),
+      Some(monitor_enum_proc),
+      LPARAM(h_monitors_mut_ptr as isize),
+    )
+    .ok()?
+  };
+
+  let h_monitors = unsafe { Box::from_raw(h_monitors_mut_ptr) };
+
+  let display_infos = h_monitors
+    .iter()
+    .map(|monitor_info_exw| DisplayInfo::new(monitor_info_exw))
+    .collect::<Vec<DisplayInfo>>();
+
+  Ok(display_infos)
+}
+
+pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo, DisplayInfoError> {
+  let point = POINT { x, y };
+  let h_monitor = unsafe { MonitorFromPoint(point, MONITOR_DEFAULTTONULL) };
+
+  if h_monitor.is_invalid() {
+    return Err(DisplayInfoError::new("Can't find display"));
+  }
+
+  let monitor_info_exw = get_monitor_info_exw(h_monitor)?;
+
+  Ok(DisplayInfo::new(&monitor_info_exw))
 }
 
 extern "system" fn monitor_enum_proc(
@@ -133,11 +150,11 @@ extern "system" fn monitor_enum_proc(
     let state = Box::leak(Box::from_raw(state.0 as *mut Vec<MONITORINFOEXW>));
 
     match get_monitor_info_exw(h_monitor) {
-      Some(monitor_info_exw) => {
+      Ok(monitor_info_exw) => {
         state.push(monitor_info_exw);
         BOOL::from(true)
       }
-      None => BOOL::from(false),
+      Err(_) => BOOL::from(false),
     }
   }
 }
