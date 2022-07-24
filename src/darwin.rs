@@ -1,48 +1,48 @@
-use crate::DisplayInfo;
+use crate::{DisplayInfo, DisplayInfoError};
 use core_graphics::display::{CGDirectDisplayID, CGDisplay, CGError, CGPoint, CGRect};
 
-fn create_display_info(id: CGDirectDisplayID) -> DisplayInfo {
-  let cg_display = CGDisplay::new(id);
-  let CGRect { origin, size } = cg_display.bounds();
+impl DisplayInfo {
+  fn new(id: CGDirectDisplayID) -> Self {
+    let cg_display = CGDisplay::new(id);
+    let CGRect { origin, size } = cg_display.bounds();
 
-  let rotation = cg_display.rotation() as f32;
-  let scale_factor = match cg_display.display_mode() {
-    Some(display_mode) => {
-      let pixel_width = display_mode.pixel_width();
+    let rotation = cg_display.rotation() as f32;
+    let scale_factor = cg_display
+      .display_mode()
+      .map(|display_mode| {
+        let pixel_width = display_mode.pixel_width();
 
-      (pixel_width as f32) / size.width as f32
+        (pixel_width as f32) / size.width as f32
+      })
+      .unwrap_or(1.0);
+
+    DisplayInfo {
+      id,
+      x: origin.x as i32,
+      y: origin.y as i32,
+      width: size.width as u32,
+      height: size.height as u32,
+      rotation,
+      scale_factor,
+      is_primary: cg_display.is_main(),
     }
-    None => 1.0,
-  };
-
-  DisplayInfo {
-    id,
-    x: origin.x as i32,
-    y: origin.y as i32,
-    width: size.width as u32,
-    height: size.height as u32,
-    rotation,
-    scale_factor,
-    is_primary: cg_display.is_main(),
   }
 }
 
-pub fn get_all() -> Vec<DisplayInfo> {
-  match CGDisplay::active_displays() {
-    Ok(display_ids) => {
-      let mut display_infos: Vec<DisplayInfo> = Vec::with_capacity(display_ids.len());
+pub fn get_all() -> Result<Vec<DisplayInfo>, DisplayInfoError> {
+  let display_ids =
+    CGDisplay::active_displays().map_err(|_| DisplayInfoError::new("Can't get active displays"))?;
 
-      for display_id in display_ids {
-        display_infos.push(create_display_info(display_id));
-      }
+  let mut display_infos: Vec<DisplayInfo> = Vec::with_capacity(display_ids.len());
 
-      display_infos
-    }
-    Err(_) => vec![],
+  for display_id in display_ids {
+    display_infos.push(DisplayInfo::new(display_id));
   }
+
+  Ok(display_infos)
 }
 
-pub fn get_from_point(x: i32, y: i32) -> Option<DisplayInfo> {
+pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo, DisplayInfoError> {
   let point = CGPoint {
     x: x as f64,
     y: y as f64,
@@ -60,17 +60,15 @@ pub fn get_from_point(x: i32, y: i32) -> Option<DisplayInfo> {
     )
   };
 
-  if cg_error != 0 {
-    return None;
+  if cg_error != 0 || display_count == 0 {
+    return Err(DisplayInfoError::new("Can't find display"));
   }
 
-  if display_count == 0 {
-    return None;
-  }
+  let display_id = display_ids
+    .get(0)
+    .ok_or(DisplayInfoError::new("Get display id error"))?;
 
-  let display_id = display_ids.get(0)?;
-
-  Some(create_display_info(*display_id))
+  Ok(DisplayInfo::new(*display_id))
 }
 
 #[link(name = "CoreGraphics", kind = "framework")]

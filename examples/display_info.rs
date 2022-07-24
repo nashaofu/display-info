@@ -4,7 +4,7 @@ use std::time::Instant;
 fn main() {
   let start = Instant::now();
 
-  let display_infos = DisplayInfo::all();
+  let display_infos = DisplayInfo::all().unwrap();
   for display_info in display_infos {
     println!("display_info {:?}", display_info);
   }
