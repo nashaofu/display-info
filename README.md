@@ -20,3 +20,13 @@ fn main() {
   println!("运行耗时: {:?}", start.elapsed());
 }
 ```
+
+## Linux requirements
+
+On Linux, you need to install [libxcb1](https://xcb.freedesktop.org/)
+
+Debian/Ubuntu:
+
+```sh
+apt-get install libxcb1
+```
