@@ -9,7 +9,8 @@ apt-get -y install --no-install-recommends \
     xvfb \
     x11vnc \
     novnc \
-    libxcb1-dev
+    libxcb1-dev \
+    libxrandr-dev
 
 # Configure noVNC
 cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html

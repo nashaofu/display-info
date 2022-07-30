@@ -23,10 +23,16 @@ fn main() {
 
 ## Linux requirements
 
-On Linux, you need to install [libxcb1](https://xcb.freedesktop.org/)
+On Linux, you need to install `libxcb`、`libxrandr`
 
 Debian/Ubuntu:
 
 ```sh
-apt-get install libxcb1
+apt-get install libxcb1 libxrandr2
+```
+
+Alpine:
+
+```sh
+apk add libxcb1 libxrandr2
 ```
