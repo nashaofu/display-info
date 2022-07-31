@@ -1,6 +1,6 @@
 use crate::DisplayInfo;
 use sfhash::digest;
-use std::{mem, ptr};
+use std::{mem, ops::Deref, ptr};
 use widestring::U16CString;
 use windows::{
   core::PCWSTR,
@@ -8,11 +8,34 @@ use windows::{
     Foundation::{BOOL, LPARAM, POINT, RECT},
     Graphics::Gdi::{
       CreateDCW, CreatedHDC, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW, GetDeviceCaps,
-      GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW, ENUM_CURRENT_SETTINGS,
-      GET_DEVICE_CAPS_INDEX, HDC, HMONITOR, HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
+      GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW, ENUM_CURRENT_SETTINGS, HDC,
+      HMONITOR, HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
     },
   },
 };
+
+// 自动释放资源
+macro_rules! drop_box {
+  ($type:tt, $value:expr, $drop:expr) => {{
+    struct DropBox($type);
+
+    impl Deref for DropBox {
+      type Target = $type;
+
+      fn deref(&self) -> &Self::Target {
+        &self.0
+      }
+    }
+
+    impl Drop for DropBox {
+      fn drop(&mut self) {
+        $drop(self.0);
+      }
+    }
+
+    DropBox($value)
+  }};
+}
 
 impl DisplayInfo {
   fn new(monitor_info_exw: &MONITORINFOEXW) -> Self {
@@ -35,35 +58,6 @@ impl DisplayInfo {
   }
 }
 
-struct CreatedHDCBox(CreatedHDC);
-
-impl Drop for CreatedHDCBox {
-  fn drop(&mut self) {
-    unsafe {
-      DeleteDC(self.0);
-    };
-  }
-}
-
-impl CreatedHDCBox {
-  fn new(sz_device: *const u16) -> Self {
-    let h_dc = unsafe {
-      CreateDCW(
-        PCWSTR(sz_device),
-        PCWSTR(sz_device),
-        PCWSTR(ptr::null()),
-        ptr::null(),
-      )
-    };
-
-    CreatedHDCBox(h_dc)
-  }
-
-  fn get_device_caps(&self, index: GET_DEVICE_CAPS_INDEX) -> i32 {
-    unsafe { GetDeviceCaps(self.0, index) }
-  }
-}
-
 fn get_monitor_info_exw(h_monitor: HMONITOR) -> Option<MONITORINFOEXW> {
   let mut monitor_info_exw: MONITORINFOEXW = unsafe { mem::zeroed() };
   monitor_info_exw.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
@@ -75,8 +69,11 @@ fn get_monitor_info_exw(h_monitor: HMONITOR) -> Option<MONITORINFOEXW> {
 }
 
 fn get_rotation(sz_device: *const u16) -> Option<f32> {
-  let mut dev_modew: DEVMODEW = DEVMODEW::default();
-  dev_modew.dmSize = mem::size_of::<DEVMODEW>() as u16;
+  let mut dev_modew: DEVMODEW = DEVMODEW {
+    dmSize: mem::size_of::<DEVMODEW>() as u16,
+    ..DEVMODEW::default()
+  };
+
   let dev_modew_ptr = <*mut _>::cast(&mut dev_modew);
 
   unsafe {
@@ -99,9 +96,21 @@ fn get_rotation(sz_device: *const u16) -> Option<f32> {
 }
 
 fn get_scale_factor(sz_device: *const u16) -> f32 {
-  let wh_dc = CreatedHDCBox::new(sz_device);
-  let logical_width = wh_dc.get_device_caps(HORZRES);
-  let physical_width = wh_dc.get_device_caps(DESKTOPHORZRES);
+  let dcw_drop_box = drop_box!(
+    CreatedHDC,
+    unsafe {
+      CreateDCW(
+        PCWSTR(sz_device),
+        PCWSTR(sz_device),
+        PCWSTR(ptr::null()),
+        ptr::null(),
+      )
+    },
+    |dcw| unsafe { DeleteDC(dcw) }
+  );
+
+  let logical_width = unsafe { GetDeviceCaps(*dcw_drop_box, HORZRES) };
+  let physical_width = unsafe { GetDeviceCaps(*dcw_drop_box, DESKTOPHORZRES) };
 
   physical_width as f32 / logical_width as f32
 }
@@ -124,7 +133,7 @@ pub fn get_all() -> Option<Vec<DisplayInfo>> {
 
   let display_infos = h_monitors
     .iter()
-    .map(|monitor_info_exw| DisplayInfo::new(monitor_info_exw))
+    .map(DisplayInfo::new)
     .collect::<Vec<DisplayInfo>>();
 
   Some(display_infos)

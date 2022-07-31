@@ -120,5 +120,5 @@ pub fn get_from_point(x: i32, y: i32) -> Option<DisplayInfo> {
         && y >= display_info.y
         && y <= display_info.y + display_info.height as i32
     })
-    .map(|display_info| *display_info)
+    .copied()
 }
