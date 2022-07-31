@@ -34,5 +34,5 @@ apt-get install libxcb1 libxrandr2
 Alpine:
 
 ```sh
-apk add libxcb1 libxrandr2
+apk add libxcb libxrandr
 ```
