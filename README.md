@@ -20,3 +20,19 @@ fn main() {
   println!("运行耗时: {:?}", start.elapsed());
 }
 ```
+
+## Linux requirements
+
+On Linux, you need to install `libxcb`、`libxrandr`
+
+Debian/Ubuntu:
+
+```sh
+apt-get install libxcb1 libxrandr2
+```
+
+Alpine:
+
+```sh
+apk add libxcb1 libxrandr2
+```
