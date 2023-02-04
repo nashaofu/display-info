@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 #[cfg(target_os = "macos")]
 mod darwin;
 #[cfg(target_os = "macos")]
@@ -26,11 +28,11 @@ pub struct DisplayInfo {
 }
 
 impl DisplayInfo {
-  pub fn all() -> Option<Vec<DisplayInfo>> {
+  pub fn all() -> Result<Vec<DisplayInfo>> {
     get_all()
   }
 
-  pub fn from_point(x: i32, y: i32) -> Option<DisplayInfo> {
+  pub fn from_point(x: i32, y: i32) -> Result<DisplayInfo> {
     get_from_point(x, y)
   }
 }
