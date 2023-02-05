@@ -83,13 +83,7 @@ fn get_rotation(sz_device: *const u16) -> Result<f32> {
 
   let dm_display_orientation = unsafe { dev_modew.Anonymous1.Anonymous2.dmDisplayOrientation };
 
-  let rotation = match dm_display_orientation {
-    0 => 0.0,
-    1 => 90.0,
-    2 => 180.0,
-    3 => 270.0,
-    _ => 0.0,
-  };
+  let rotation: f32 = dm_display_orientation.0 as f32;
 
   Ok(rotation)
 }
@@ -102,7 +96,7 @@ fn get_scale_factor(sz_device: *const u16) -> f32 {
         PCWSTR(sz_device),
         PCWSTR(sz_device),
         PCWSTR(ptr::null()),
-        ptr::null(),
+        None,
       )
     },
     |dcw| unsafe { DeleteDC(dcw) }
@@ -115,12 +109,12 @@ fn get_scale_factor(sz_device: *const u16) -> f32 {
 }
 
 pub fn get_all() -> Result<Vec<DisplayInfo>> {
-  let h_monitors_mut_ptr = Box::into_raw(Box::new(Vec::new()));
+  let h_monitors_mut_ptr: *mut Vec<MONITORINFOEXW> = Box::into_raw(Box::default());
 
   unsafe {
     EnumDisplayMonitors(
       HDC::default(),
-      ptr::null_mut(),
+      None,
       Some(monitor_enum_proc),
       LPARAM(h_monitors_mut_ptr as isize),
     )
