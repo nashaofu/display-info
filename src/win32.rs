@@ -1,6 +1,5 @@
 use crate::DisplayInfo;
 use anyhow::{anyhow, Result};
-use sfhash::digest;
 use std::{mem, ops::Deref, ptr};
 use widestring::U16CString;
 use windows::{
@@ -46,8 +45,10 @@ impl DisplayInfo {
     let rc_monitor = monitor_info_exw.monitorInfo.rcMonitor;
     let dw_flags = monitor_info_exw.monitorInfo.dwFlags;
 
+    let id = fxhash::hash32(sz_device_string.as_bytes());
+
     DisplayInfo {
-      id: digest(sz_device_string.as_bytes()),
+      id,
       x: rc_monitor.left,
       y: rc_monitor.top,
       width: (rc_monitor.right - rc_monitor.left) as u32,
