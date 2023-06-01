@@ -9,8 +9,8 @@ use windows::{
     Foundation::{BOOL, LPARAM, POINT, RECT},
     Graphics::Gdi::{
       CreateDCW, CreatedHDC, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW, GetDeviceCaps,
-      GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW, ENUM_CURRENT_SETTINGS, HDC,
-      HMONITOR, HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
+      GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW, ENUM_CURRENT_SETTINGS,
+      ENUM_DISPLAY_SETTINGS_FLAGS, HDC, HMONITOR, HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
     },
   },
 };
@@ -78,7 +78,13 @@ fn get_rotation(sz_device: *const u16) -> Result<f32> {
   let dev_modew_ptr = <*mut _>::cast(&mut dev_modew);
 
   unsafe {
-    EnumDisplaySettingsExW(PCWSTR(sz_device), ENUM_CURRENT_SETTINGS, dev_modew_ptr, 0).ok()?;
+    EnumDisplaySettingsExW(
+      PCWSTR(sz_device),
+      ENUM_CURRENT_SETTINGS,
+      dev_modew_ptr,
+      ENUM_DISPLAY_SETTINGS_FLAGS::default(),
+    )
+    .ok()?;
   };
 
   let dm_display_orientation = unsafe { dev_modew.Anonymous1.Anonymous2.dmDisplayOrientation };
