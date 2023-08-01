@@ -132,4 +132,3 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
     .copied()
     .ok_or_else(|| anyhow!("Get display info failed"))
 }
-
