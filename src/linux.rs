@@ -125,9 +125,9 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
     .iter()
     .find(|&&display_info| {
       x >= display_info.x
-        && x <= display_info.x + display_info.width as i32
+        && x < display_info.x + display_info.width as i32
         && y >= display_info.y
-        && y <= display_info.y + display_info.height as i32
+        && y < display_info.y + display_info.height as i32
     })
     .copied()
     .ok_or_else(|| anyhow!("Get display info failed"))
