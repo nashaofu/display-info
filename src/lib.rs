@@ -24,6 +24,7 @@ pub struct DisplayInfo {
     pub height: u32,
     pub rotation: f32,
     pub scale_factor: f32,
+    pub frequency: f32,
     pub is_primary: bool,
 }
 

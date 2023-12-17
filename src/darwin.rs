@@ -8,14 +8,16 @@ impl DisplayInfo {
         let CGRect { origin, size } = cg_display.bounds();
 
         let rotation = cg_display.rotation() as f32;
-        let scale_factor = cg_display
+        let (scale_factor, frequency) = cg_display
             .display_mode()
             .map(|display_mode| {
                 let pixel_width = display_mode.pixel_width();
+                let scale_factor = ((pixel_width as f32 / size.width as f32) * 10.0).round() / 10.0;
+                let refresh_rate = display_mode.refresh_rate() as f32;
 
-                (pixel_width as f32) / size.width as f32
+                (scale_factor, refresh_rate)
             })
-            .unwrap_or(1.0);
+            .unwrap_or((1.0, 60.0));
 
         DisplayInfo {
             id,
@@ -24,6 +26,7 @@ impl DisplayInfo {
             width: size.width as u32,
             height: size.height as u32,
             rotation,
+            frequency,
             scale_factor,
             is_primary: cg_display.is_main(),
         }

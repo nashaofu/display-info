@@ -10,8 +10,8 @@ use windows::{
         Graphics::Gdi::{
             CreateDCW, CreatedHDC, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW,
             GetDeviceCaps, GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW,
-            ENUM_CURRENT_SETTINGS, ENUM_DISPLAY_SETTINGS_FLAGS, HDC, HMONITOR, HORZRES,
-            MONITORINFOEXW, MONITOR_DEFAULTTONULL,
+            EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR, HORZRES, MONITORINFOEXW,
+            MONITOR_DEFAULTTONULL,
         },
     },
 };
@@ -47,13 +47,16 @@ impl DisplayInfo {
         let rc_monitor = monitor_info_exw.monitorInfo.rcMonitor;
         let dw_flags = monitor_info_exw.monitorInfo.dwFlags;
 
+        let (rotation, frequency) = get_rotation_frequency(sz_device).unwrap_or((0.0, 60));
+
         DisplayInfo {
             id: hash32(sz_device_string.as_bytes()),
             x: rc_monitor.left,
             y: rc_monitor.top,
             width: (rc_monitor.right - rc_monitor.left) as u32,
             height: (rc_monitor.bottom - rc_monitor.top) as u32,
-            rotation: get_rotation(sz_device).unwrap_or(0.0),
+            rotation,
+            frequency,
             scale_factor: get_scale_factor(sz_device),
             is_primary: dw_flags == 1u32,
         }
@@ -70,7 +73,7 @@ fn get_monitor_info_exw(h_monitor: HMONITOR) -> Result<MONITORINFOEXW> {
     Ok(monitor_info_exw)
 }
 
-fn get_rotation(sz_device: *const u16) -> Result<f32> {
+fn get_rotation_frequency(sz_device: *const u16) -> Result<(f32, f32)> {
     let mut dev_modew: DEVMODEW = DEVMODEW {
         dmSize: mem::size_of::<DEVMODEW>() as u16,
         ..DEVMODEW::default()
@@ -83,7 +86,7 @@ fn get_rotation(sz_device: *const u16) -> Result<f32> {
             PCWSTR(sz_device),
             ENUM_CURRENT_SETTINGS,
             dev_modew_ptr,
-            ENUM_DISPLAY_SETTINGS_FLAGS::default(),
+            EDS_RAWMODE,
         )
         .ok()?;
     };
@@ -91,8 +94,9 @@ fn get_rotation(sz_device: *const u16) -> Result<f32> {
     let dm_display_orientation = unsafe { dev_modew.Anonymous1.Anonymous2.dmDisplayOrientation };
 
     let rotation: f32 = dm_display_orientation.0 as f32;
+    let frequency = dev_modew.dmDisplayFrequency as f32;
 
-    Ok(rotation)
+    Ok((rotation, frequency))
 }
 
 fn get_scale_factor(sz_device: *const u16) -> f32 {
@@ -112,7 +116,9 @@ fn get_scale_factor(sz_device: *const u16) -> f32 {
     let logical_width = unsafe { GetDeviceCaps(*dcw_drop_box, HORZRES) };
     let physical_width = unsafe { GetDeviceCaps(*dcw_drop_box, DESKTOPHORZRES) };
 
-    physical_width as f32 / logical_width as f32
+    let scale_factor = (physical_width as f32 / logical_width as f32) * 10.0;
+
+    scale_factor.round() / 10.0
 }
 
 pub fn get_all() -> Result<Vec<DisplayInfo>> {

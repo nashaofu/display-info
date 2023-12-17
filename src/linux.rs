@@ -2,13 +2,21 @@ use crate::DisplayInfo;
 use anyhow::{anyhow, Result};
 use std::str;
 use xcb::{
-    randr::{GetCrtcInfo, GetMonitors, GetOutputInfo, MonitorInfo, Output, Rotation},
+    randr::{
+        GetCrtcInfo, GetMonitors, GetOutputInfo, GetScreenInfo, MonitorInfo, Output, Rotation,
+    },
     x::{GetProperty, Screen, ATOM_RESOURCE_MANAGER, ATOM_STRING},
     Connection, Xid,
 };
 
 impl DisplayInfo {
-    fn new(monitor_info: &MonitorInfo, output: &Output, rotation: f32, scale_factor: f32) -> Self {
+    fn new(
+        monitor_info: &MonitorInfo,
+        output: &Output,
+        rotation: f32,
+        scale_factor: f32,
+        frequency: f32,
+    ) -> Self {
         DisplayInfo {
             id: output.resource_id(),
             x: ((monitor_info.x() as f32) / scale_factor) as i32,
@@ -17,6 +25,7 @@ impl DisplayInfo {
             height: ((monitor_info.height() as f32) / scale_factor) as u32,
             rotation,
             scale_factor,
+            frequency,
             is_primary: monitor_info.primary(),
         }
     }
@@ -97,6 +106,13 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
 
     let monitor_info_iterator = get_monitors_reply.monitors();
 
+    let get_screen_info_cookie = conn.send_request(&GetScreenInfo {
+        window: screen.root(),
+    });
+
+    let get_screen_info_reply = conn.wait_for_reply(get_screen_info_cookie)?;
+    let frequency = get_screen_info_reply.rate() as f32;
+
     let mut display_infos = Vec::new();
 
     for monitor_info in monitor_info_iterator {
@@ -112,6 +128,7 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
             output,
             rotation,
             scale_factor,
+            frequency,
         ));
     }
 
