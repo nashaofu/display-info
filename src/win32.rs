@@ -10,8 +10,8 @@ use windows::{
         Graphics::Gdi::{
             CreateDCW, CreatedHDC, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW,
             GetDeviceCaps, GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW,
-            EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR, HORZRES, MONITORINFOEXW,
-            MONITOR_DEFAULTTONULL,
+            DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR,
+            HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
         },
     },
 };
@@ -47,7 +47,7 @@ impl DisplayInfo {
         let rc_monitor = monitor_info_exw.monitorInfo.rcMonitor;
         let dw_flags = monitor_info_exw.monitorInfo.dwFlags;
 
-        let (rotation, frequency) = get_rotation_frequency(sz_device).unwrap_or((0.0, 60));
+        let (rotation, frequency) = get_rotation_frequency(sz_device).unwrap_or((0.0, 60.0));
 
         DisplayInfo {
             id: hash32(sz_device_string.as_bytes()),
@@ -93,7 +93,14 @@ fn get_rotation_frequency(sz_device: *const u16) -> Result<(f32, f32)> {
 
     let dm_display_orientation = unsafe { dev_modew.Anonymous1.Anonymous2.dmDisplayOrientation };
 
-    let rotation: f32 = dm_display_orientation.0 as f32;
+    let rotation = match dm_display_orientation {
+        DEVMODE_DISPLAY_ORIENTATION(0) => 0.0,
+        DEVMODE_DISPLAY_ORIENTATION(1) => 90.0,
+        DEVMODE_DISPLAY_ORIENTATION(2) => 180.0,
+        DEVMODE_DISPLAY_ORIENTATION(3) => 270.0,
+        _ => dm_display_orientation.0 as f32,
+    };
+
     let frequency = dev_modew.dmDisplayFrequency as f32;
 
     Ok((rotation, frequency))
