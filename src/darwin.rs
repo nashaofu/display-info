@@ -12,7 +12,7 @@ impl DisplayInfo {
             .display_mode()
             .map(|display_mode| {
                 let pixel_width = display_mode.pixel_width();
-                let scale_factor = ((pixel_width as f32 / size.width as f32) * 10.0).round() / 10.0;
+                let scale_factor = pixel_width as f32 / size.width as f32;
                 let refresh_rate = display_mode.refresh_rate() as f32;
 
                 (scale_factor, refresh_rate)

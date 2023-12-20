@@ -123,9 +123,7 @@ fn get_scale_factor(sz_device: *const u16) -> f32 {
     let logical_width = unsafe { GetDeviceCaps(*dcw_drop_box, HORZRES) };
     let physical_width = unsafe { GetDeviceCaps(*dcw_drop_box, DESKTOPHORZRES) };
 
-    let scale_factor = (physical_width as f32 / logical_width as f32) * 10.0;
-
-    scale_factor.round() / 10.0
+    physical_width as f32 / logical_width as f32
 }
 
 pub fn get_all() -> Result<Vec<DisplayInfo>> {
