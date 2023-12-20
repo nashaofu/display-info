@@ -47,7 +47,7 @@ impl DisplayInfo {
         let rc_monitor = monitor_info_exw.monitorInfo.rcMonitor;
         let dw_flags = monitor_info_exw.monitorInfo.dwFlags;
 
-        let (rotation, frequency) = get_rotation_frequency(sz_device).unwrap_or((0.0, 60.0));
+        let (rotation, frequency) = get_rotation_frequency(sz_device).unwrap_or((0.0, 0.0));
 
         DisplayInfo {
             id: hash32(sz_device_string.as_bytes()),

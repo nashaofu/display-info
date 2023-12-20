@@ -17,7 +17,7 @@ impl DisplayInfo {
 
                 (scale_factor, refresh_rate)
             })
-            .unwrap_or((1.0, 60.0));
+            .unwrap_or((1.0, 0.0));
 
         DisplayInfo {
             id,

@@ -3,7 +3,8 @@ use anyhow::{anyhow, Result};
 use std::str;
 use xcb::{
     randr::{
-        GetCrtcInfo, GetMonitors, GetOutputInfo, GetScreenInfo, MonitorInfo, Output, Rotation,
+        GetCrtcInfo, GetMonitors, GetOutputInfo, GetScreenResources, Mode, ModeFlag, ModeInfo,
+        MonitorInfo, Output, Rotation,
     },
     x::{GetProperty, Screen, ATOM_RESOURCE_MANAGER, ATOM_STRING},
     Connection, Xid,
@@ -28,6 +29,31 @@ impl DisplayInfo {
             frequency,
             is_primary: monitor_info.primary(),
         }
+    }
+}
+
+// per https://gitlab.freedesktop.org/xorg/app/xrandr/-/blob/master/xrandr.c#L576
+fn get_current_frequency(mode_infos: &[ModeInfo], mode: Mode) -> f32 {
+    let mode_info = match mode_infos.iter().find(|m| m.id == mode.resource_id()) {
+        Some(mode_info) => mode_info,
+        None => return 0.0,
+    };
+
+    let vtotal = {
+        let mut val = mode_info.vtotal;
+        if mode_info.mode_flags.contains(ModeFlag::DOUBLE_SCAN) {
+            val *= 2;
+        }
+        if mode_info.mode_flags.contains(ModeFlag::INTERLACE) {
+            val /= 2;
+        }
+        val
+    };
+
+    if vtotal != 0 && mode_info.htotal != 0 {
+        (mode_info.dot_clock as f32) / (vtotal as f32 * mode_info.htotal as f32)
+    } else {
+        0.0
     }
 }
 
@@ -59,7 +85,11 @@ fn get_scale_factor(conn: &Connection, screen: &Screen) -> Result<f32> {
     Ok(dpi / 96.0)
 }
 
-fn get_rotation(conn: &Connection, output: &Output) -> Result<f32> {
+fn get_rotation_frequency(
+    conn: &Connection,
+    mode_infos: &[ModeInfo],
+    output: &Output,
+) -> Result<(f32, f32)> {
     let get_output_info_cookie = conn.send_request(&GetOutputInfo {
         output: *output,
         config_timestamp: 0,
@@ -74,6 +104,8 @@ fn get_rotation(conn: &Connection, output: &Output) -> Result<f32> {
 
     let get_crtc_info_reply = conn.wait_for_reply(get_crtc_info_cookie)?;
 
+    let mode = get_crtc_info_reply.mode();
+
     let rotation = match get_crtc_info_reply.rotation() {
         Rotation::ROTATE_0 => 0.0,
         Rotation::ROTATE_90 => 90.0,
@@ -82,7 +114,9 @@ fn get_rotation(conn: &Connection, output: &Output) -> Result<f32> {
         _ => 0.0,
     };
 
-    Ok(rotation)
+    let frequency = get_current_frequency(mode_infos, mode);
+
+    Ok((rotation, frequency))
 }
 
 pub fn get_all() -> Result<Vec<DisplayInfo>> {
@@ -106,12 +140,13 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
 
     let monitor_info_iterator = get_monitors_reply.monitors();
 
-    let get_screen_info_cookie = conn.send_request(&GetScreenInfo {
+    let get_screen_resources_cookie = conn.send_request(&GetScreenResources {
         window: screen.root(),
     });
 
-    let get_screen_info_reply = conn.wait_for_reply(get_screen_info_cookie)?;
-    let frequency = get_screen_info_reply.rate() as f32;
+    let get_screen_resources_reply = conn.wait_for_reply(get_screen_resources_cookie)?;
+
+    let mode_infos = get_screen_resources_reply.modes();
 
     let mut display_infos = Vec::new();
 
@@ -121,7 +156,8 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
             .get(0)
             .ok_or_else(|| anyhow!("Not found output"))?;
 
-        let rotation = get_rotation(&conn, output).unwrap_or(0.0);
+        let (rotation, frequency) =
+            get_rotation_frequency(&conn, mode_infos, output).unwrap_or((0.0, 0.0));
 
         display_infos.push(DisplayInfo::new(
             monitor_info,
