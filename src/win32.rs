@@ -8,11 +8,12 @@ use windows::{
     Win32::{
         Foundation::{BOOL, LPARAM, POINT, RECT},
         Graphics::Gdi::{
-            CreateDCW, CreatedHDC, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW,
-            GetDeviceCaps, GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW,
+            CreateDCW, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW, GetDeviceCaps,
+            GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW,
             DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR,
             HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
         },
+        UI::HiDpi::GetDpiForSystem,
     },
 };
 
@@ -108,7 +109,7 @@ fn get_rotation_frequency(sz_device: *const u16) -> Result<(f32, f32)> {
 
 fn get_scale_factor(sz_device: *const u16) -> f32 {
     let dcw_drop_box = drop_box!(
-        CreatedHDC,
+        HDC,
         unsafe {
             CreateDCW(
                 PCWSTR(sz_device),
@@ -122,8 +123,10 @@ fn get_scale_factor(sz_device: *const u16) -> f32 {
 
     let logical_width = unsafe { GetDeviceCaps(*dcw_drop_box, HORZRES) };
     let physical_width = unsafe { GetDeviceCaps(*dcw_drop_box, DESKTOPHORZRES) };
+    let dpi = unsafe { GetDpiForSystem() };
+    let scale = logical_width as f32 / physical_width as f32;
 
-    physical_width as f32 / logical_width as f32
+    dpi as f32 / 96.0 / scale
 }
 
 pub fn get_all() -> Result<Vec<DisplayInfo>> {
