@@ -2,7 +2,7 @@
 
 Cross-platform get display info for MacOS、Windows、Linux. Like [electron Display Object](https://www.electronjs.org/docs/latest/api/structures/display)
 
-## example
+## Example
 
 ```rust
 use display_info::DisplayInfo;
@@ -21,6 +21,18 @@ fn main() {
 }
 ```
 
+## DisplayInfo struct
+
+-   `id` u32 - Unique identifier associated with the display.
+-   `x` i32 - The display x coordinate.
+-   `y` i32 - The display y coordinate.
+-   `width` u32 - The display pixel width.
+-   `height` u32 - The display pixel height.
+-   `rotation` f32 - Can be 0, 90, 180, 270, represents screen rotation in clock-wise degrees.
+-   `scale_factor` f32 - Output device's pixel scale factor.
+-   `frequency` f32 - The display refresh rate.
+-   `is_primary` bool - Whether the screen is the main screen
+
 ## Linux requirements
 
 On Linux, you need to install `libxcb`、`libxrandr`
@@ -35,4 +47,10 @@ Alpine:
 
 ```sh
 apk add libxcb libxrandr
+```
+
+ArchLinux:
+
+```sh
+pacman -S libxcb libxrandr
 ```

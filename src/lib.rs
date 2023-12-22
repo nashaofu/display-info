@@ -1,3 +1,22 @@
+//! # example
+//! Get all display info
+//! ```
+//! use display_info::DisplayInfo;
+//! use std::time::Instant;
+//!
+//! fn main() {
+//!   let start = Instant::now();
+//!
+//!   let display_infos = DisplayInfo::all().unwrap();
+//!   for display_info in display_infos {
+//!     println!("display_info {display_info:?}");
+//!   }
+//!   let display_info = DisplayInfo::from_point(100, 100).unwrap();
+//!   println!("display_info {display_info:?}");
+//!   println!("运行耗时: {:?}", start.elapsed());
+//! }
+//! ```
+
 use anyhow::Result;
 
 #[cfg(target_os = "macos")]
@@ -17,14 +36,23 @@ use linux::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DisplayInfo {
+    /// Unique identifier associated with the display.
     pub id: u32,
+    /// The display x coordinate.
     pub x: i32,
+    /// The display x coordinate.
     pub y: i32,
+    /// The display pixel width.
     pub width: u32,
+    /// The display pixel height.
     pub height: u32,
+    /// Can be 0, 90, 180, 270, represents screen rotation in clock-wise degrees.
     pub rotation: f32,
+    /// Output device's pixel scale factor.
     pub scale_factor: f32,
+    /// The display refresh rate.
     pub frequency: f32,
+    /// Whether the screen is the main screen
     pub is_primary: bool,
 }
 
