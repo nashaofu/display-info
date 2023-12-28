@@ -6,7 +6,7 @@ use widestring::U16CString;
 use windows::{
     core::PCWSTR,
     Win32::{
-        Foundation::{BOOL, LPARAM, POINT, RECT},
+        Foundation::{BOOL, LPARAM, POINT, RECT, TRUE},
         Graphics::Gdi::{
             CreateDCW, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW, GetDeviceCaps,
             GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW,
@@ -41,7 +41,7 @@ macro_rules! drop_box {
 }
 
 impl DisplayInfo {
-    fn new(monitor_info_exw: &MONITORINFOEXW) -> Self {
+    fn new(h_monitor: HMONITOR, monitor_info_exw: &MONITORINFOEXW) -> Self {
         let sz_device = monitor_info_exw.szDevice.as_ptr();
 
         let sz_device_string = unsafe { U16CString::from_ptr_str(sz_device).to_string_lossy() };
@@ -52,6 +52,7 @@ impl DisplayInfo {
 
         DisplayInfo {
             id: hash32(sz_device_string.as_bytes()),
+            raw_handle: h_monitor,
             x: rc_monitor.left,
             y: rc_monitor.top,
             width: (rc_monitor.right - rc_monitor.left) as u32,
@@ -62,16 +63,6 @@ impl DisplayInfo {
             is_primary: dw_flags == 1u32,
         }
     }
-}
-
-fn get_monitor_info_exw(h_monitor: HMONITOR) -> Result<MONITORINFOEXW> {
-    let mut monitor_info_exw: MONITORINFOEXW = unsafe { mem::zeroed() };
-    monitor_info_exw.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
-    let monitor_info_exw_ptr = <*mut _>::cast(&mut monitor_info_exw);
-
-    unsafe { GetMonitorInfoW(h_monitor, monitor_info_exw_ptr).ok()? };
-
-    Ok(monitor_info_exw)
 }
 
 fn get_rotation_frequency(sz_device: *const u16) -> Result<(f32, f32)> {
@@ -129,8 +120,18 @@ fn get_scale_factor(sz_device: *const u16) -> f32 {
     dpi as f32 / 96.0 / scale
 }
 
+fn get_monitor_info_exw(h_monitor: HMONITOR) -> Result<MONITORINFOEXW> {
+    let mut monitor_info_exw: MONITORINFOEXW = unsafe { mem::zeroed() };
+    monitor_info_exw.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
+    let monitor_info_exw_ptr = <*mut _>::cast(&mut monitor_info_exw);
+
+    unsafe { GetMonitorInfoW(h_monitor, monitor_info_exw_ptr).ok()? };
+
+    Ok(monitor_info_exw)
+}
+
 pub fn get_all() -> Result<Vec<DisplayInfo>> {
-    let h_monitors_mut_ptr: *mut Vec<MONITORINFOEXW> = Box::into_raw(Box::default());
+    let h_monitors_mut_ptr: *mut Vec<HMONITOR> = Box::into_raw(Box::default());
 
     unsafe {
         EnumDisplayMonitors(
@@ -144,10 +145,12 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
 
     let h_monitors = unsafe { Box::from_raw(h_monitors_mut_ptr) };
 
-    let display_infos = h_monitors
-        .iter()
-        .map(DisplayInfo::new)
-        .collect::<Vec<DisplayInfo>>();
+    let mut display_infos = Vec::new();
+
+    for &h_monitor in h_monitors.iter() {
+        let monitor_info_exw = get_monitor_info_exw(h_monitor)?;
+        display_infos.push(DisplayInfo::new(h_monitor, &monitor_info_exw));
+    }
 
     Ok(display_infos)
 }
@@ -162,7 +165,7 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
 
     let monitor_info_exw = get_monitor_info_exw(h_monitor)?;
 
-    Ok(DisplayInfo::new(&monitor_info_exw))
+    Ok(DisplayInfo::new(h_monitor, &monitor_info_exw))
 }
 
 extern "system" fn monitor_enum_proc(
@@ -172,14 +175,9 @@ extern "system" fn monitor_enum_proc(
     state: LPARAM,
 ) -> BOOL {
     unsafe {
-        let state = Box::leak(Box::from_raw(state.0 as *mut Vec<MONITORINFOEXW>));
+        let state = Box::leak(Box::from_raw(state.0 as *mut Vec<HMONITOR>));
+        state.push(h_monitor);
 
-        match get_monitor_info_exw(h_monitor) {
-            Ok(monitor_info_exw) => {
-                state.push(monitor_info_exw);
-                BOOL::from(true)
-            }
-            Err(_) => BOOL::from(false),
-        }
+        TRUE
     }
 }
