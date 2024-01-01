@@ -20,6 +20,7 @@ impl DisplayInfo {
     ) -> Self {
         DisplayInfo {
             id: output.resource_id(),
+            raw_handle: *output,
             x: ((monitor_info.x() as f32) / scale_factor) as i32,
             y: ((monitor_info.y() as f32) / scale_factor) as i32,
             width: ((monitor_info.width() as f32) / scale_factor) as u32,

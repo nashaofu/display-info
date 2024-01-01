@@ -21,6 +21,7 @@ impl DisplayInfo {
 
         DisplayInfo {
             id,
+            raw_handle: cg_display,
             x: origin.x as i32,
             y: origin.y as i32,
             width: size.width as u32,
@@ -64,13 +65,15 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
         )
     };
 
-    let display_id = display_ids.first();
-
-    if cg_error != 0 || display_count == 0 || display_id.is_none() {
-        return Err(anyhow!("Display not found"));
+    if cg_error != 0 || display_count == 0 {
+        return Err(anyhow!("Get displays with point failed"));
     }
 
-    Ok(DisplayInfo::new(*display_id.unwrap()))
+    if let Some(&display_id) = display_ids.first() {
+        Ok(DisplayInfo::new(display_id))
+    } else {
+        Err(anyhow!("Display not found"))
+    }
 }
 
 #[link(name = "CoreGraphics", kind = "framework")]
