@@ -24,6 +24,7 @@ fn main() {
 ## DisplayInfo struct
 
 -   `id` u32 - Unique identifier associated with the display.
+-   `raw_handle` CGDisplay/HMONITOR/Output - Native display raw handle
 -   `x` i32 - The display x coordinate.
 -   `y` i32 - The display y coordinate.
 -   `width` u32 - The display pixel width.
