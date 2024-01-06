@@ -2,6 +2,8 @@ use crate::DisplayInfo;
 use anyhow::{anyhow, Result};
 use core_graphics::display::{CGDirectDisplayID, CGDisplay, CGError, CGPoint, CGRect};
 
+pub type ScreenRawHandle = CGDisplay;
+
 impl DisplayInfo {
     fn new(id: CGDirectDisplayID) -> Self {
         let cg_display = CGDisplay::new(id);

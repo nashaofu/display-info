@@ -10,6 +10,8 @@ use xcb::{
     Connection, Xid,
 };
 
+pub type ScreenRawHandle = Output;
+
 impl DisplayInfo {
     fn new(
         monitor_info: &MonitorInfo,

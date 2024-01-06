@@ -39,6 +39,8 @@ macro_rules! drop_box {
     }};
 }
 
+pub type ScreenRawHandle = HMONITOR;
+
 impl DisplayInfo {
     fn new(h_monitor: HMONITOR, monitor_info_exw: &MONITORINFOEXW) -> Self {
         let sz_device = monitor_info_exw.szDevice.as_ptr();

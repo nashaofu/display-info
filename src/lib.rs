@@ -17,39 +17,27 @@
 //! }
 //! ```
 
+#[cfg(target_os = "linux")]
+#[path = "linux.rs"]
+mod platform;
+
+#[cfg(target_os = "macos")]
+#[path = "macos.rs"]
+mod platform;
+
+#[cfg(target_os = "windows")]
+#[path = "windows.rs"]
+mod platform;
+
 use anyhow::Result;
-
-#[cfg(target_os = "macos")]
-mod darwin;
-#[cfg(target_os = "macos")]
-use core_graphics::display::CGDisplay;
-#[cfg(target_os = "macos")]
-use darwin::*;
-
-#[cfg(target_os = "windows")]
-mod win32;
-#[cfg(target_os = "windows")]
-use win32::*;
-#[cfg(target_os = "windows")]
-use windows::Win32::Graphics::Gdi::HMONITOR;
-
-#[cfg(target_os = "linux")]
-mod linux;
-#[cfg(target_os = "linux")]
-use linux::*;
-#[cfg(target_os = "linux")]
-use xcb::randr::Output;
+use platform::{get_all, get_from_point, ScreenRawHandle};
 
 #[derive(Debug, Clone, Copy)]
 pub struct DisplayInfo {
     /// Unique identifier associated with the display.
     pub id: u32,
-    #[cfg(target_os = "macos")]
-    pub raw_handle: CGDisplay,
-    #[cfg(target_os = "windows")]
-    pub raw_handle: HMONITOR,
-    #[cfg(target_os = "linux")]
-    pub raw_handle: Output,
+    /// Native screen raw handle
+    pub raw_handle: ScreenRawHandle,
     /// The display x coordinate.
     pub x: i32,
     /// The display x coordinate.
