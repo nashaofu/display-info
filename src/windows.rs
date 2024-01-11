@@ -116,7 +116,7 @@ fn get_scale_factor(sz_device: *const u16) -> f32 {
     let logical_width = unsafe { GetDeviceCaps(*dcw_drop_box, HORZRES) };
     let physical_width = unsafe { GetDeviceCaps(*dcw_drop_box, DESKTOPHORZRES) };
 
-    logical_width as f32 / physical_width as f32
+    physical_width as f32 / logical_width as f32
 }
 
 fn get_monitor_info_exw(h_monitor: HMONITOR) -> Result<MONITORINFOEXW> {
