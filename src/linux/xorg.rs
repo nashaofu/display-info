@@ -1,6 +1,7 @@
 use crate::DisplayInfo;
 use anyhow::{anyhow, Result};
 use std::str;
+use xcb::x::{Atom, GetAtomName};
 use xcb::{
     randr::{
         GetCrtcInfo, GetMonitors, GetOutputInfo, GetScreenResources, Mode, ModeFlag, ModeInfo,
@@ -14,6 +15,7 @@ pub type ScreenRawHandle = Output;
 
 impl DisplayInfo {
     fn new(
+        name: Option<String>,
         monitor_info: &MonitorInfo,
         output: &Output,
         rotation: f32,
@@ -21,6 +23,7 @@ impl DisplayInfo {
         frequency: f32,
     ) -> Self {
         DisplayInfo {
+            name,
             id: output.resource_id(),
             raw_handle: *output,
             x: ((monitor_info.x() as f32) / scale_factor) as i32,
@@ -33,6 +36,14 @@ impl DisplayInfo {
             is_primary: monitor_info.primary(),
         }
     }
+}
+
+fn get_name(conn: &Connection, atom: Atom) -> Result<Option<String>> {
+    let get_atom_value = conn.send_request(&GetAtomName { atom });
+
+    conn.wait_for_reply(get_atom_value)
+        .map(|reply| Some(reply.name().to_string()))
+        .map_err(|e| anyhow!(e))
 }
 
 // per https://gitlab.freedesktop.org/xorg/app/xrandr/-/blob/master/xrandr.c#L576
@@ -162,7 +173,10 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
         let (rotation, frequency) =
             get_rotation_frequency(&conn, mode_infos, output).unwrap_or((0.0, 0.0));
 
+        let name = get_name(&conn, monitor_info.name())?;
+
         display_infos.push(DisplayInfo::new(
+            name,
             monitor_info,
             output,
             rotation,
@@ -179,12 +193,12 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
 
     display_infos
         .iter()
-        .find(|&&display_info| {
+        .find(|&display_info| {
             x >= display_info.x
                 && x < display_info.x + display_info.width as i32
                 && y >= display_info.y
                 && y < display_info.y + display_info.height as i32
         })
-        .copied()
+        .cloned()
         .ok_or_else(|| anyhow!("Get display info failed"))
 }
