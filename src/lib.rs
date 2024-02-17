@@ -18,19 +18,21 @@
 //! ```
 
 #[cfg(target_os = "linux")]
-#[path = "linux.rs"]
-mod platform;
+mod linux;
+#[cfg(target_os = "linux")]
+use linux::{get_all, get_from_point, ScreenRawHandle};
 
 #[cfg(target_os = "macos")]
-#[path = "macos.rs"]
-mod platform;
+mod macos;
+#[cfg(target_os = "macos")]
+use macos::{get_all, get_from_point, ScreenRawHandle};
 
 #[cfg(target_os = "windows")]
-#[path = "windows.rs"]
-mod platform;
+mod windows;
+#[cfg(target_os = "windows")]
+use windows::{get_all, get_from_point, ScreenRawHandle};
 
 use anyhow::Result;
-use platform::{get_all, get_from_point, ScreenRawHandle};
 
 #[derive(Debug, Clone, Copy)]
 pub struct DisplayInfo {
