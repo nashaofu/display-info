@@ -34,7 +34,7 @@ use windows::{get_all, get_from_point, ScreenRawHandle};
 
 use anyhow::Result;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub struct DisplayInfo {
     /// Unique identifier associated with the display.
     pub id: u32,
