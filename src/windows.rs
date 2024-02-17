@@ -53,7 +53,7 @@ impl DisplayInfo {
 
         DisplayInfo {
             id: hash32(sz_device_string.as_bytes()),
-            name: sz_device_string.to_string().ok(),
+            name: Some(sz_device_string.to_string()),
             raw_handle: h_monitor,
             x: rc_monitor.left,
             y: rc_monitor.top,
