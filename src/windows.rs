@@ -13,6 +13,7 @@ use windows::{
             DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR,
             HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
         },
+        UI::Shell::{Common::DEVICE_SCALE_FACTOR, GetScaleFactorForMonitor},
     },
 };
 
@@ -61,7 +62,7 @@ impl DisplayInfo {
             height: (rc_monitor.bottom - rc_monitor.top) as u32,
             rotation,
             frequency,
-            scale_factor: get_scale_factor(sz_device),
+            scale_factor: get_scale_factor(h_monitor),
             is_primary: dw_flags == 1u32,
         }
     }
@@ -100,24 +101,10 @@ fn get_rotation_frequency(sz_device: *const u16) -> Result<(f32, f32)> {
     Ok((rotation, frequency))
 }
 
-fn get_scale_factor(sz_device: *const u16) -> f32 {
-    let dcw_drop_box = drop_box!(
-        HDC,
-        unsafe {
-            CreateDCW(
-                PCWSTR(sz_device),
-                PCWSTR(sz_device),
-                PCWSTR(ptr::null()),
-                None,
-            )
-        },
-        |dcw| unsafe { DeleteDC(dcw) }
-    );
-
-    let logical_width = unsafe { GetDeviceCaps(*dcw_drop_box, HORZRES) };
-    let physical_width = unsafe { GetDeviceCaps(*dcw_drop_box, DESKTOPHORZRES) };
-
-    physical_width as f32 / logical_width as f32
+fn get_scale_factor(h_monitor: HMONITOR) -> f32 {
+    let device_scale_factor =
+        unsafe { GetScaleFactorForMonitor(h_monitor).unwrap_or(DEVICE_SCALE_FACTOR(100)) };
+    device_scale_factor.0 as f32 / 100.0
 }
 
 fn get_monitor_info_exw(h_monitor: HMONITOR) -> Result<MONITORINFOEXW> {
