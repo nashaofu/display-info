@@ -41,7 +41,7 @@ impl DisplayInfo {
 fn get_name(conn: &Connection, atom: Atom) -> Result<String> {
     let get_atom_value = conn.send_request(&GetAtomName { atom });
 
-    let get_atom_value_reply =conn.wait_for_reply(get_atom_value)?;
+    let get_atom_value_reply = conn.wait_for_reply(get_atom_value)?;
     Ok(get_atom_value_reply.name().to_string())
 }
 
