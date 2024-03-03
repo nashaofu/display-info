@@ -23,7 +23,7 @@ impl DisplayInfo {
 
         DisplayInfo {
             id,
-            name: Some(format!("Display {id}")),
+            name: format!("Display {id}"),
             raw_handle: cg_display,
             x: origin.x as i32,
             y: origin.y as i32,

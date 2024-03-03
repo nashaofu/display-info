@@ -15,7 +15,7 @@ pub type ScreenRawHandle = Output;
 
 impl DisplayInfo {
     fn new(
-        name: Option<String>,
+        name: String,
         monitor_info: &MonitorInfo,
         output: &Output,
         rotation: f32,
@@ -38,12 +38,11 @@ impl DisplayInfo {
     }
 }
 
-fn get_name(conn: &Connection, atom: Atom) -> Result<Option<String>> {
+fn get_name(conn: &Connection, atom: Atom) -> Result<String> {
     let get_atom_value = conn.send_request(&GetAtomName { atom });
 
-    conn.wait_for_reply(get_atom_value)
-        .map(|reply| Some(reply.name().to_string()))
-        .map_err(|e| anyhow!(e))
+    let get_atom_value_reply =conn.wait_for_reply(get_atom_value)?;
+    Ok(get_atom_value_reply.name().to_string())
 }
 
 // per https://gitlab.freedesktop.org/xorg/app/xrandr/-/blob/master/xrandr.c#L576
