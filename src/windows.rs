@@ -102,8 +102,16 @@ fn get_rotation_frequency(sz_device: *const u16) -> Result<(f32, f32)> {
 }
 
 fn get_scale_factor(h_monitor: HMONITOR) -> f32 {
-    let device_scale_factor =
-        unsafe { GetScaleFactorForMonitor(h_monitor).unwrap_or(DEVICE_SCALE_FACTOR(100)) };
+    let device_scale_factor = unsafe {
+        match GetScaleFactorForMonitor(h_monitor) {
+            Ok(scale_factor) => scale_factor,
+            Err(e) => {
+                log::warn!("GetScaleFactorForMonitor failed: {:?}", e);
+                DEVICE_SCALE_FACTOR(100)
+            }
+        }
+    };
+    log::debug!("device_scale_factor: {:?}", device_scale_factor.0);
     device_scale_factor.0 as f32 / 100.0
 }
 
