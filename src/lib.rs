@@ -37,7 +37,7 @@ use anyhow::Result;
 #[derive(Debug, Clone)]
 pub struct DisplayInfo {
     /// The Display Name
-    pub name: Option<String>,
+    pub name: String,
     /// Unique identifier associated with the display.
     pub id: u32,
     /// Native screen raw handle
@@ -75,7 +75,7 @@ impl DisplayInfo {
 
         display_infos
             .iter()
-            .find(|&d| d.name.as_deref().is_some_and(|n| n == name))
+            .find(|&d| d.name == name)
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("Get display info failed"))
     }

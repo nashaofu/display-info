@@ -28,7 +28,7 @@ impl From<&OutputInfo> for DisplayInfo {
         let (w, h) = info.logical_size.unwrap_or(info.physical_size);
         DisplayInfo {
             id: info.id,
-            name: info.name.clone(),
+            name: info.name.clone().unwrap_or_default(),
             raw_handle: unsafe { xcb::randr::Output::new(info.id) },
             x: ((x as f32) / scale_factor) as i32,
             y: ((y as f32) / scale_factor) as i32,
