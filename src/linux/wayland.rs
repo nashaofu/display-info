@@ -28,6 +28,7 @@ impl From<&OutputInfo> for DisplayInfo {
         let (w, h) = info.logical_size.unwrap_or(info.physical_size);
         DisplayInfo {
             id: info.id,
+            name: info.name.clone(),
             raw_handle: unsafe { xcb::randr::Output::new(info.id) },
             x: ((x as f32) / scale_factor) as i32,
             y: ((y as f32) / scale_factor) as i32,
@@ -125,12 +126,12 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
 
     display_infos
         .iter()
-        .find(|&&d| {
+        .find(|&d| {
             x >= d.x
                 && x - (d.width as i32) < d.x + d.width as i32
                 && y >= d.y
                 && y - (d.height as i32) < d.y + d.height as i32
         })
-        .copied()
+        .cloned()
         .ok_or_else(|| anyhow!("Get display info failed"))
 }

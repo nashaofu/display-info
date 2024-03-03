@@ -34,8 +34,10 @@ use windows::{get_all, get_from_point, ScreenRawHandle};
 
 use anyhow::Result;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct DisplayInfo {
+    /// The Display Name
+    pub name: Option<String>,
     /// Unique identifier associated with the display.
     pub id: u32,
     /// Native screen raw handle
@@ -65,5 +67,16 @@ impl DisplayInfo {
 
     pub fn from_point(x: i32, y: i32) -> Result<DisplayInfo> {
         get_from_point(x, y)
+    }
+
+    pub fn from_name(name: impl ToString) -> Result<DisplayInfo> {
+        let name = name.to_string();
+        let display_infos = get_all()?;
+
+        display_infos
+            .iter()
+            .find(|&d| d.name.as_deref().is_some_and(|n| n == name))
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("Get display info failed"))
     }
 }
