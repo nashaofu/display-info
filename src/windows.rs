@@ -8,15 +8,13 @@ use windows::{
     Win32::{
         Foundation::{BOOL, LPARAM, POINT, RECT, TRUE},
         Graphics::Gdi::{
-            EnumDisplayMonitors, EnumDisplaySettingsExW,
-            GetMonitorInfoW, MonitorFromPoint, DEVMODEW,
-            DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR,
-            MONITORINFOEXW, MONITOR_DEFAULTTONULL,
+            EnumDisplayMonitors, EnumDisplaySettingsExW, GetMonitorInfoW, MonitorFromPoint,
+            DEVMODEW, DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC,
+            HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
         },
         UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
     },
 };
-
 
 pub type ScreenRawHandle = HMONITOR;
 
