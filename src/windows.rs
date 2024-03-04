@@ -1,43 +1,20 @@
 use crate::DisplayInfo;
 use anyhow::{anyhow, Result};
 use fxhash::hash32;
-use std::{mem, ops::Deref, ptr};
+use std::mem;
 use widestring::U16CString;
 use windows::{
     core::PCWSTR,
     Win32::{
         Foundation::{BOOL, LPARAM, POINT, RECT, TRUE},
         Graphics::Gdi::{
-            CreateDCW, DeleteDC, EnumDisplayMonitors, EnumDisplaySettingsExW, GetDeviceCaps,
-            GetMonitorInfoW, MonitorFromPoint, DESKTOPHORZRES, DEVMODEW,
-            DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR,
-            HORZRES, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
+            EnumDisplayMonitors, EnumDisplaySettingsExW, GetMonitorInfoW, MonitorFromPoint,
+            DEVMODEW, DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC,
+            HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
         },
+        UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
     },
 };
-
-// 自动释放资源
-macro_rules! drop_box {
-    ($type:tt, $value:expr, $drop:expr) => {{
-        struct DropBox($type);
-
-        impl Deref for DropBox {
-            type Target = $type;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-
-        impl Drop for DropBox {
-            fn drop(&mut self) {
-                $drop(self.0);
-            }
-        }
-
-        DropBox($value)
-    }};
-}
 
 pub type ScreenRawHandle = HMONITOR;
 
@@ -61,7 +38,13 @@ impl DisplayInfo {
             height: (rc_monitor.bottom - rc_monitor.top) as u32,
             rotation,
             frequency,
-            scale_factor: get_scale_factor(sz_device),
+            scale_factor: dpi_to_scale_factor(get_dpi_for_monitor(h_monitor).map_or_else(
+                |e| {
+                    log::warn!("GetDpiForMonitor failed: {:?}", e);
+                    BASE_DPI
+                },
+                |dpi| dpi,
+            )) as f32,
             is_primary: dw_flags == 1u32,
         }
     }
@@ -100,24 +83,18 @@ fn get_rotation_frequency(sz_device: *const u16) -> Result<(f32, f32)> {
     Ok((rotation, frequency))
 }
 
-fn get_scale_factor(sz_device: *const u16) -> f32 {
-    let dcw_drop_box = drop_box!(
-        HDC,
-        unsafe {
-            CreateDCW(
-                PCWSTR(sz_device),
-                PCWSTR(sz_device),
-                PCWSTR(ptr::null()),
-                None,
-            )
-        },
-        |dcw| unsafe { DeleteDC(dcw) }
-    );
+pub const BASE_DPI: u32 = 96;
+pub fn dpi_to_scale_factor(dpi: u32) -> f64 {
+    dpi as f64 / BASE_DPI as f64
+}
 
-    let logical_width = unsafe { GetDeviceCaps(*dcw_drop_box, HORZRES) };
-    let physical_width = unsafe { GetDeviceCaps(*dcw_drop_box, DESKTOPHORZRES) };
-
-    physical_width as f32 / logical_width as f32
+fn get_dpi_for_monitor(h_monitor: HMONITOR) -> Result<u32> {
+    let mut dpi_x = 0;
+    let mut dpi_y = 0;
+    unsafe {
+        GetDpiForMonitor(h_monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y)?;
+    }
+    Ok(dpi_x)
 }
 
 fn get_monitor_info_exw(h_monitor: HMONITOR) -> Result<MONITORINFOEXW> {
