@@ -17,7 +17,9 @@ use windows::{
 
 #[cfg(not(feature = "gdi"))]
 use windows::Win32::UI::HiDpi::{
-    GetDpiForMonitor /* Minimum supported Windows 8.1 / Windows Server 2012 R2 */, MDT_EFFECTIVE_DPI};
+    GetDpiForMonitor, /* Minimum supported Windows 8.1 / Windows Server 2012 R2 */
+    MDT_EFFECTIVE_DPI,
+};
 
 #[cfg(feature = "gdi")]
 use windows::Win32::{
@@ -56,7 +58,9 @@ impl DisplayInfo {
                 |dpi| dpi,
             )) as f32,
             #[cfg(feature = "gdi")]
-            scale_factor: dpi_to_scale_factor(get_dpi_for_monitor(PCWSTR(sz_device)).unwrap_or(BASE_DPI)) as f32,
+            scale_factor: dpi_to_scale_factor(
+                get_dpi_for_monitor(PCWSTR(sz_device)).unwrap_or(BASE_DPI),
+            ) as f32,
 
             is_primary: dw_flags == 1u32,
         }
@@ -108,7 +112,7 @@ fn get_dpi_for_monitor(h_monitor: HMONITOR) -> Result<u32> {
     unsafe {
         GetDpiForMonitor(h_monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y)?;
     }
-    // println!("GetDpiForMonitor {}", dpi_x);
+
     Ok(dpi_x)
 }
 #[cfg(feature = "gdi")]
@@ -122,7 +126,6 @@ fn get_dpi_for_monitor(name: PCWSTR) -> Result<u32> {
 
         dpi_x
     };
-    // println!("GetDeviceCaps {}", dpi_x);
 
     Ok(dpi_x)
 }
