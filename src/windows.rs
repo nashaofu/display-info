@@ -12,8 +12,17 @@ use windows::{
             DEVMODEW, DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC,
             HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
         },
-        UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
     },
+};
+
+#[cfg(not(feature = "gdi"))]
+use windows::Win32::UI::HiDpi::{
+    GetDpiForMonitor /* Minimum supported Windows 8.1 / Windows Server 2012 R2 */, MDT_EFFECTIVE_DPI};
+
+#[cfg(feature = "gdi")]
+use windows::Win32::{
+    Foundation::HWND,
+    Graphics::Gdi::{CreateDCW, GetDeviceCaps, ReleaseDC, LOGPIXELSX},
 };
 
 pub type ScreenRawHandle = HMONITOR;
@@ -38,6 +47,7 @@ impl DisplayInfo {
             height: (rc_monitor.bottom - rc_monitor.top) as u32,
             rotation,
             frequency,
+            #[cfg(not(feature = "gdi"))]
             scale_factor: dpi_to_scale_factor(get_dpi_for_monitor(h_monitor).map_or_else(
                 |e| {
                     log::warn!("GetDpiForMonitor failed: {:?}", e);
@@ -45,6 +55,9 @@ impl DisplayInfo {
                 },
                 |dpi| dpi,
             )) as f32,
+            #[cfg(feature = "gdi")]
+            scale_factor: dpi_to_scale_factor(get_dpi_for_monitor(PCWSTR(sz_device)).unwrap_or(BASE_DPI)) as f32,
+
             is_primary: dw_flags == 1u32,
         }
     }
@@ -88,12 +101,29 @@ pub fn dpi_to_scale_factor(dpi: u32) -> f64 {
     dpi as f64 / BASE_DPI as f64
 }
 
+#[cfg(not(feature = "gdi"))]
 fn get_dpi_for_monitor(h_monitor: HMONITOR) -> Result<u32> {
     let mut dpi_x = 0;
     let mut dpi_y = 0;
     unsafe {
         GetDpiForMonitor(h_monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y)?;
     }
+    // println!("GetDpiForMonitor {}", dpi_x);
+    Ok(dpi_x)
+}
+#[cfg(feature = "gdi")]
+fn get_dpi_for_monitor(name: PCWSTR) -> Result<u32> {
+    let dpi_x = unsafe {
+        let hdc = CreateDCW(name, None, None, None);
+        let dpi_x = GetDeviceCaps(hdc, LOGPIXELSX) as u32;
+        if hdc != HDC::default() {
+            ReleaseDC(HWND::default(), hdc);
+        }
+
+        dpi_x
+    };
+    // println!("GetDeviceCaps {}", dpi_x);
+
     Ok(dpi_x)
 }
 
