@@ -30,6 +30,8 @@ fn main() {
 -   `y` i32 - The display y coordinate.
 -   `width` u32 - The display pixel width.
 -   `height` u32 - The display pixel height.
+-   `width_mm` i32 - The width of a display in millimeters. This value may be 0.
+-   `height_mm` i32 - The height of a display in millimeters. This value may be 0.
 -   `rotation` f32 - Can be 0, 90, 180, 270, represents screen rotation in clock-wise degrees.
 -   `scale_factor` f32 - Output device's pixel scale factor.
 -   `frequency` f32 - The display refresh rate.
