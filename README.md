@@ -58,7 +58,3 @@ ArchLinux:
 ```sh
 pacman -S libxcb libxrandr
 ```
-
-## Minimum supported Windows 2000 Professional/Server
-
-Using features `gdi`.
