@@ -48,6 +48,10 @@ pub struct DisplayInfo {
     pub width: u32,
     /// The display pixel height.
     pub height: u32,
+    /// The width of a display in millimeters.
+    pub width_mm: f32,
+    /// The height of a display in millimeters.
+    pub height_mm: f32,
     /// Can be 0, 90, 180, 270, represents screen rotation in clock-wise degrees.
     pub rotation: f32,
     /// Output device's pixel scale factor.

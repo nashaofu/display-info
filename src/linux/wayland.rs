@@ -34,6 +34,8 @@ impl From<&OutputInfo> for DisplayInfo {
             y: ((y as f32) / scale_factor) as i32,
             width: ((w as f32) / scale_factor) as u32,
             height: ((h as f32) / scale_factor) as u32,
+            width_mm: 0.0f32,
+            height_mm: 0.0f32,
             rotation,
             scale_factor,
             frequency,

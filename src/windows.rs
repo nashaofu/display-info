@@ -6,11 +6,12 @@ use widestring::U16CString;
 use windows::{
     core::PCWSTR,
     Win32::{
-        Foundation::{BOOL, LPARAM, POINT, RECT, TRUE},
+        Foundation::{BOOL, HWND, LPARAM, POINT, RECT, TRUE},
         Graphics::Gdi::{
-            EnumDisplayMonitors, EnumDisplaySettingsExW, GetMonitorInfoW, MonitorFromPoint,
-            DEVMODEW, DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE, ENUM_CURRENT_SETTINGS, HDC,
-            HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
+            CreateDCW, EnumDisplayMonitors, EnumDisplaySettingsExW, GetDeviceCaps, GetMonitorInfoW,
+            MonitorFromPoint, ReleaseDC, DEVMODEW, DEVMODE_DISPLAY_ORIENTATION, EDS_RAWMODE,
+            ENUM_CURRENT_SETTINGS, HDC, HMONITOR, HORZSIZE, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
+            VERTSIZE,
         },
     },
 };
@@ -22,10 +23,7 @@ use windows::Win32::UI::HiDpi::{
 };
 
 #[cfg(feature = "gdi")]
-use windows::Win32::{
-    Foundation::HWND,
-    Graphics::Gdi::{CreateDCW, GetDeviceCaps, ReleaseDC, LOGPIXELSX},
-};
+use windows::Win32::Graphics::Gdi::LOGPIXELSX;
 
 pub type ScreenRawHandle = HMONITOR;
 
@@ -37,6 +35,26 @@ impl DisplayInfo {
         let rc_monitor = monitor_info_exw.monitorInfo.rcMonitor;
         let dw_flags = monitor_info_exw.monitorInfo.dwFlags;
 
+        let name = PCWSTR(sz_device);
+        let hdc = unsafe { CreateDCW(name, None, None, None) };
+        let width_mm = unsafe { GetDeviceCaps(hdc, HORZSIZE) };
+        let height_mm = unsafe { GetDeviceCaps(hdc, VERTSIZE) };
+
+        #[cfg(not(feature = "gdi"))]
+        let scale_factor = dpi_to_scale_factor(get_dpi_for_monitor(h_monitor).map_or_else(
+            |e| {
+                log::warn!("GetDpiForMonitor failed: {:?}", e);
+                BASE_DPI
+            },
+            |dpi| dpi,
+        )) as f32;
+        #[cfg(feature = "gdi")]
+        let scale_factor = dpi_to_scale_factor(get_dpi_for_monitor(hdc).unwrap()) as f32;
+
+        if hdc != HDC::default() {
+            unsafe { ReleaseDC(HWND::default(), hdc) };
+        }
+
         let (rotation, frequency) = get_rotation_frequency(sz_device).unwrap_or((0.0, 0.0));
 
         DisplayInfo {
@@ -47,21 +65,11 @@ impl DisplayInfo {
             y: rc_monitor.top,
             width: (rc_monitor.right - rc_monitor.left) as u32,
             height: (rc_monitor.bottom - rc_monitor.top) as u32,
+            width_mm: width_mm as f32,
+            height_mm: height_mm as f32,
             rotation,
             frequency,
-            #[cfg(not(feature = "gdi"))]
-            scale_factor: dpi_to_scale_factor(get_dpi_for_monitor(h_monitor).map_or_else(
-                |e| {
-                    log::warn!("GetDpiForMonitor failed: {:?}", e);
-                    BASE_DPI
-                },
-                |dpi| dpi,
-            )) as f32,
-            #[cfg(feature = "gdi")]
-            scale_factor: dpi_to_scale_factor(
-                get_dpi_for_monitor(PCWSTR(sz_device)).unwrap_or(BASE_DPI),
-            ) as f32,
-
+            scale_factor,
             is_primary: dw_flags == 1u32,
         }
     }
@@ -116,17 +124,8 @@ fn get_dpi_for_monitor(h_monitor: HMONITOR) -> Result<u32> {
     Ok(dpi_x)
 }
 #[cfg(feature = "gdi")]
-fn get_dpi_for_monitor(name: PCWSTR) -> Result<u32> {
-    let dpi_x = unsafe {
-        let hdc = CreateDCW(name, None, None, None);
-        let dpi_x = GetDeviceCaps(hdc, LOGPIXELSX) as u32;
-        if hdc != HDC::default() {
-            ReleaseDC(HWND::default(), hdc);
-        }
-
-        dpi_x
-    };
-
+fn get_dpi_for_monitor(hdc: HDC) -> Result<u32> {
+    let dpi_x = unsafe { GetDeviceCaps(hdc, LOGPIXELSX) as u32 };
     Ok(dpi_x)
 }
 

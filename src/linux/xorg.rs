@@ -30,6 +30,8 @@ impl DisplayInfo {
             y: ((monitor_info.y() as f32) / scale_factor) as i32,
             width: ((monitor_info.width() as f32) / scale_factor) as u32,
             height: ((monitor_info.height() as f32) / scale_factor) as u32,
+            width_mm: 0.0f32,
+            height_mm: 0.0f32,
             rotation,
             scale_factor,
             frequency,
