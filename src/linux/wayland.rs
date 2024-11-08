@@ -26,6 +26,7 @@ impl From<&OutputInfo> for DisplayInfo {
             .unwrap_or(0.);
         let (x, y) = info.logical_position.unwrap_or(info.location);
         let (w, h) = info.logical_size.unwrap_or(info.physical_size);
+        let (width_mm, height_mm) = info.physical_size;
         DisplayInfo {
             id: info.id,
             name: info.name.clone().unwrap_or_default(),
@@ -34,8 +35,8 @@ impl From<&OutputInfo> for DisplayInfo {
             y: ((y as f32) / scale_factor) as i32,
             width: ((w as f32) / scale_factor) as u32,
             height: ((h as f32) / scale_factor) as u32,
-            width_mm: 0.0f32,
-            height_mm: 0.0f32,
+            width_mm,
+            height_mm,
             rotation,
             scale_factor,
             frequency,
