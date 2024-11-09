@@ -1,6 +1,6 @@
 use crate::DisplayInfo;
 use anyhow::{anyhow, Result};
-use core_graphics::display::{CGDirectDisplayID, CGDisplay, CGError, CGPoint, CGRect};
+use core_graphics::display::{CGDirectDisplayID, CGDisplay, CGError, CGPoint, CGRect, CGSize};
 
 pub type ScreenRawHandle = CGDisplay;
 
@@ -21,6 +21,8 @@ impl DisplayInfo {
             })
             .unwrap_or((1.0, 0.0));
 
+        let size_mm = unsafe { CGDisplayScreenSize(id) };
+
         DisplayInfo {
             id,
             name: format!("Display {id}"),
@@ -29,6 +31,8 @@ impl DisplayInfo {
             y: origin.y as i32,
             width: size.width as u32,
             height: size.height as u32,
+            width_mm: size_mm.width as i32,
+            height_mm: size_mm.height as i32,
             rotation,
             frequency,
             scale_factor,
@@ -87,4 +91,6 @@ extern "C" {
         displays: *mut CGDirectDisplayID,
         display_count: *mut u32,
     ) -> CGError;
+
+    fn CGDisplayScreenSize(displays: CGDirectDisplayID) -> CGSize;
 }
