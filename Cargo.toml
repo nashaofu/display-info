@@ -20,21 +20,10 @@ core-graphics = "0.23"
 [target.'cfg(target_os = "windows")'.dependencies]
 fxhash = "0.2"
 widestring = "1.0"
-
-[target.'cfg(all(target_os = "windows", features = "gdi"))'.dependencies]
 windows = { version = "0.56", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
 ] }
-
-[target.'cfg(all(target_os = "windows", not(features = "gdi")))'.dependencies]
-windows = { version = "0.56", features = [
-    "Win32_Foundation",
-    "Win32_Graphics_Gdi",
-    "Win32_UI_Shell_Common",
-    "Win32_UI_HiDpi",
-] }
-
 
 [target.'cfg(target_os = "linux")'.dependencies]
 xcb = { version = "1.3", features = ["randr"] }
