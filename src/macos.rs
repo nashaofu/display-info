@@ -21,10 +21,7 @@ impl DisplayInfo {
             })
             .unwrap_or((1.0, 0.0));
 
-        let CGSize {
-            width_mm,
-            height_mm,
-        } = unsafe { CGDisplayScreenSize(id) };
+        let size_mm = unsafe { CGDisplayScreenSize(id) };
 
         DisplayInfo {
             id,
@@ -34,8 +31,8 @@ impl DisplayInfo {
             y: origin.y as i32,
             width: size.width as u32,
             height: size.height as u32,
-            width_mm: width_mm as i32,
-            height_mm: height_mm as i32,
+            width_mm: size_mm.width as i32,
+            height_mm: size_mm.height as i32,
             rotation,
             frequency,
             scale_factor,
