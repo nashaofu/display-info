@@ -33,7 +33,7 @@ fn get_monitor_dpi(h_monitor: HMONITOR) -> Result<f32> {
     };
 
     // Use Windows 11 actual DPI setting
-    let scale_factor = (dpi_x.max(dpi_y) as f32) / 96.0;
+    let scale_factor = (dpi_x as f32) / 96.0;
     Ok( scale_factor )
 }
 
@@ -56,7 +56,7 @@ impl DisplayInfo {
         }
 
         let (rotation, frequency, scale_factor) =
-            get_monitor_other_info(sz_device).unwrap_or((0.0, 0.0, 1.0));
+            get_monitor_other_info(sz_device,rc_monitor).unwrap_or((0.0, 0.0, 1.0));
 
         DisplayInfo {
             id: hash32(sz_device_string.as_bytes()),
@@ -76,14 +76,14 @@ impl DisplayInfo {
     }
 }
 
-fn get_monitor_other_info(sz_device: *const u16) -> Result<(f32, f32, f32)> {
+fn get_monitor_other_info(sz_device: *const u16, rc_monitor: RECT) -> Result<(f32, f32, f32)> {
     let mut dev_modew: DEVMODEW = DEVMODEW {
         dmSize: mem::size_of::<DEVMODEW>() as u16,
         ..DEVMODEW::default()
     };
 
     // Get monitor handle from device
-    let h_monitor = unsafe { MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTONULL) };
+    let h_monitor = unsafe { MonitorFromPoint(POINT { x: rc_monitor.left, y: rc_monitor.top }, MONITOR_DEFAULTTONULL) };
     if h_monitor.is_invalid() {
         return Err(anyhow!("Monitor is invalid"));
     }
@@ -154,10 +154,10 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
     }
 
     //log to print
-    env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+    /*env_logger::Builder::from_env(Env::default().default_filter_or("info"))
         .init();
 
-    log::info!("DisplayInfos: {:?}", display_infos);
+    log::info!("DisplayInfos: {:?}", display_infos);*/
 
 
     Ok(display_infos)
