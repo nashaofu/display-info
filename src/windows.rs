@@ -13,8 +13,29 @@ use windows::{
             ENUM_CURRENT_SETTINGS, HDC, HMONITOR, HORZSIZE, MONITORINFOEXW, MONITOR_DEFAULTTONULL,
             VERTSIZE,
         },
+        
     },
 };
+use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
+
+
+fn get_monitor_dpi(h_monitor: HMONITOR) -> Result<f32> {
+    let mut dpi_x = 0;
+    let mut dpi_y = 0;
+    
+    unsafe {
+        GetDpiForMonitor(
+            h_monitor,
+            MDT_EFFECTIVE_DPI,
+            &mut dpi_x,
+            &mut dpi_y
+        ).map_err(|e| anyhow!("Failed to get DPI for monitor: {}", e))?
+    };
+
+    // Use Windows 11 actual DPI setting
+    let scale_factor = (dpi_x as f32) / 96.0;
+    Ok( scale_factor )
+}
 
 pub type ScreenRawHandle = HMONITOR;
 
@@ -35,7 +56,7 @@ impl DisplayInfo {
         }
 
         let (rotation, frequency, scale_factor) =
-            get_monitor_other_info(sz_device).unwrap_or((0.0, 0.0, 1.0));
+            get_monitor_other_info(sz_device,rc_monitor).unwrap_or((0.0, 0.0, 1.0));
 
         DisplayInfo {
             id: hash32(sz_device_string.as_bytes()),
@@ -55,11 +76,17 @@ impl DisplayInfo {
     }
 }
 
-fn get_monitor_other_info(sz_device: *const u16) -> Result<(f32, f32, f32)> {
+fn get_monitor_other_info(sz_device: *const u16, rc_monitor: RECT) -> Result<(f32, f32, f32)> {
     let mut dev_modew: DEVMODEW = DEVMODEW {
         dmSize: mem::size_of::<DEVMODEW>() as u16,
         ..DEVMODEW::default()
     };
+
+    // Get monitor handle from device
+    let h_monitor = unsafe { MonitorFromPoint(POINT { x: rc_monitor.left, y: rc_monitor.top }, MONITOR_DEFAULTTONULL) };
+    if h_monitor.is_invalid() {
+        return Err(anyhow!("Monitor is invalid"));
+    }
 
     let dev_modew_ptr = <*mut _>::cast(&mut dev_modew);
 
@@ -89,7 +116,7 @@ fn get_monitor_other_info(sz_device: *const u16) -> Result<(f32, f32, f32)> {
     // let physical_size = (dev_modew.dmPelsWidth, dev_modew.dmPelsHeight);
 
     let logical_pixels = dev_modew.dmLogPixels;
-    let scale_factor = logical_pixels as f32 / 96.0;
+    let scale_factor = get_monitor_dpi(h_monitor)?;
 
     Ok((rotation, frequency, scale_factor))
 }
@@ -126,12 +153,19 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
         display_infos.push(DisplayInfo::new(h_monitor, &monitor_info_exw));
     }
 
+    //log to print
+    /*env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+        .init();
+
+    log::info!("DisplayInfos: {:?}", display_infos);*/
+
+
     Ok(display_infos)
 }
 
 pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
     let point = POINT { x, y };
-    let h_monitor = unsafe { MonitorFromPoint(point, MONITOR_DEFAULTTONULL) };
+    let h_monitor: HMONITOR = unsafe { MonitorFromPoint(point, MONITOR_DEFAULTTONULL) };
 
     if h_monitor.is_invalid() {
         return Err(anyhow!("Monitor is invalid"));
