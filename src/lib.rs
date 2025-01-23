@@ -15,6 +15,8 @@
 //! println!("运行耗时: {:?}", start.elapsed());
 //! ```
 
+// pub mod error;
+
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "linux")]
@@ -28,16 +30,14 @@ use macos::{get_all, get_from_point, ScreenRawHandle};
 #[cfg(target_os = "windows")]
 mod windows;
 #[cfg(target_os = "windows")]
-use windows::{get_all, get_from_point, ScreenRawHandle};
-
-use anyhow::Result;
+use windows::ScreenRawHandle;
 
 #[derive(Debug, Clone)]
 pub struct DisplayInfo {
-    /// The Display Name
-    pub name: String,
     /// Unique identifier associated with the display.
     pub id: u32,
+    /// The Display Name
+    pub name: String,
     /// Native screen raw handle
     pub raw_handle: ScreenRawHandle,
     /// The display x coordinate.
@@ -62,23 +62,19 @@ pub struct DisplayInfo {
     pub is_primary: bool,
 }
 
-impl DisplayInfo {
-    pub fn all() -> Result<Vec<DisplayInfo>> {
-        get_all()
-    }
+// impl DisplayInfo {
+//     // pub fn from_point(x: i32, y: i32) -> Result<DisplayInfo> {
+//     //     get_from_point(x, y)
+//     // }
 
-    pub fn from_point(x: i32, y: i32) -> Result<DisplayInfo> {
-        get_from_point(x, y)
-    }
+//     // pub fn from_name(name: impl ToString) -> Result<DisplayInfo> {
+//     //     let name = name.to_string();
+//     //     let display_infos = get_all()?;
 
-    pub fn from_name(name: impl ToString) -> Result<DisplayInfo> {
-        let name = name.to_string();
-        let display_infos = get_all()?;
-
-        display_infos
-            .iter()
-            .find(|&d| d.name == name)
-            .cloned()
-            .ok_or_else(|| anyhow::anyhow!("Get display info failed"))
-    }
-}
+//     //     display_infos
+//     //         .iter()
+//     //         .find(|&d| d.name == name)
+//     //         .cloned()
+//     //         .ok_or_else(|| anyhow::anyhow!("Get display info failed"))
+//     // }
+// }
