@@ -15,7 +15,7 @@
 //! println!("运行耗时: {:?}", start.elapsed());
 //! ```
 
-// pub mod error;
+pub mod error;
 
 #[cfg(target_os = "linux")]
 mod linux;

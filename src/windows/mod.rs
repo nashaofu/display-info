@@ -1,6 +1,5 @@
 use std::{mem, ptr};
 
-use anyhow::{anyhow, Result};
 use scopeguard::guard;
 use utils::{get_dev_mode_w, get_scale_factor, monitor_enum_proc};
 use widestring::U16CString;
@@ -10,28 +9,31 @@ use windows::{
         Foundation::{LPARAM, POINT},
         Graphics::Gdi::{
             CreateDCW, DeleteDC, EnumDisplayMonitors, GetDeviceCaps, GetMonitorInfoW,
-            MonitorFromPoint, DMDO_180, DMDO_270, DMDO_90, DMDO_DEFAULT, HDC, HMONITOR, HORZSIZE,
+            MonitorFromPoint, DMDO_180, DMDO_270, DMDO_90, DMDO_DEFAULT, HMONITOR, HORZSIZE,
             MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONULL, VERTSIZE,
         },
         UI::WindowsAndMessaging::MONITORINFOF_PRIMARY,
     },
 };
 
-use crate::DisplayInfo;
+use crate::{
+    error::{DIError, DIResult},
+    DisplayInfo,
+};
 
 mod utils;
 
 pub type ScreenRawHandle = HMONITOR;
 
 impl DisplayInfo {
-    pub fn new(hmonitor: HMONITOR) -> Result<DisplayInfo> {
+    fn new(h_monitor: HMONITOR) -> DIResult<DisplayInfo> {
         let mut monitor_info_ex_w = MONITORINFOEXW::default();
         monitor_info_ex_w.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
         let monitor_info_ex_w_ptr =
             &mut monitor_info_ex_w as *mut MONITORINFOEXW as *mut MONITORINFO;
 
         // https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/nf-winuser-getmonitorinfoa
-        unsafe { GetMonitorInfoW(hmonitor, monitor_info_ex_w_ptr).ok()? };
+        unsafe { GetMonitorInfoW(h_monitor, monitor_info_ex_w_ptr).ok()? };
 
         let name = U16CString::from_vec_truncate(monitor_info_ex_w.szDevice).to_string()?;
 
@@ -59,8 +61,8 @@ impl DisplayInfo {
 
         let (width_mm, height_mm) = unsafe {
             (
-                GetDeviceCaps(*scope_guard_hdc, HORZSIZE),
-                GetDeviceCaps(*scope_guard_hdc, VERTSIZE),
+                GetDeviceCaps(Some(*scope_guard_hdc), HORZSIZE),
+                GetDeviceCaps(Some(*scope_guard_hdc), VERTSIZE),
             )
         };
 
@@ -74,12 +76,12 @@ impl DisplayInfo {
             _ => 0.0,
         };
 
-        let scale_factor = get_scale_factor(hmonitor, scope_guard_hdc)?;
+        let scale_factor = get_scale_factor(h_monitor, scope_guard_hdc)?;
 
         Ok(DisplayInfo {
-            id: hmonitor.0 as u32,
+            id: h_monitor.0 as u32,
             name,
-            raw_handle: hmonitor,
+            raw_handle: h_monitor,
             x: dm_position.x,
             y: dm_position.y,
             width: dm_pels_width,
@@ -93,41 +95,41 @@ impl DisplayInfo {
         })
     }
 
-    pub fn all() -> Result<Vec<DisplayInfo>> {
-        let hmonitors_mut_ptr: *mut Vec<HMONITOR> = Box::into_raw(Box::default());
+    pub fn all() -> DIResult<Vec<DisplayInfo>> {
+        let h_monitors_mut_ptr: *mut Vec<HMONITOR> = Box::into_raw(Box::default());
 
-        let hmonitors = unsafe {
+        let h_monitors = unsafe {
             EnumDisplayMonitors(
-                HDC::default(),
+                None,
                 None,
                 Some(monitor_enum_proc),
-                LPARAM(hmonitors_mut_ptr as isize),
+                LPARAM(h_monitors_mut_ptr as isize),
             )
             .ok()?;
-            Box::from_raw(hmonitors_mut_ptr)
+            Box::from_raw(h_monitors_mut_ptr)
         };
 
-        let mut impl_monitors = Vec::with_capacity(hmonitors.len());
+        let mut impl_monitors = Vec::with_capacity(h_monitors.len());
 
-        for &hmonitor in hmonitors.iter() {
-            if let Ok(impl_monitor) = DisplayInfo::new(hmonitor) {
+        for &h_monitor in h_monitors.iter() {
+            if let Ok(impl_monitor) = DisplayInfo::new(h_monitor) {
                 impl_monitors.push(impl_monitor);
             } else {
-                log::error!("ImplMonitor::new({:?}) failed", hmonitor);
+                log::error!("ImplMonitor::new({:?}) failed", h_monitor);
             }
         }
 
         Ok(impl_monitors)
     }
 
-    pub fn from_point(x: i32, y: i32) -> Result<DisplayInfo> {
+    pub fn from_point(x: i32, y: i32) -> DIResult<DisplayInfo> {
         let point = POINT { x, y };
-        let hmonitor = unsafe { MonitorFromPoint(point, MONITOR_DEFAULTTONULL) };
+        let h_monitor = unsafe { MonitorFromPoint(point, MONITOR_DEFAULTTONULL) };
 
-        if hmonitor.is_invalid() {
-            return Err(anyhow!("Not found monitor"));
+        if h_monitor.is_invalid() {
+            return Err(DIError::new("Not found monitor"));
         }
 
-        DisplayInfo::new(hmonitor)
+        DisplayInfo::new(h_monitor)
     }
 }
