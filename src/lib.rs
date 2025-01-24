@@ -16,11 +16,12 @@
 //! ```
 
 pub mod error;
+use error::{DIError, DIResult};
 
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "linux")]
-use linux::{get_all, get_from_point, ScreenRawHandle};
+use linux::ScreenRawHandle;
 
 #[cfg(target_os = "macos")]
 mod macos;
@@ -62,19 +63,15 @@ pub struct DisplayInfo {
     pub is_primary: bool,
 }
 
-// impl DisplayInfo {
-//     // pub fn from_point(x: i32, y: i32) -> Result<DisplayInfo> {
-//     //     get_from_point(x, y)
-//     // }
+impl DisplayInfo {
+    pub fn from_name(name: impl ToString) -> DIResult<DisplayInfo> {
+        let name = name.to_string();
+        let display_infos = DisplayInfo::all()?;
 
-//     // pub fn from_name(name: impl ToString) -> Result<DisplayInfo> {
-//     //     let name = name.to_string();
-//     //     let display_infos = get_all()?;
-
-//     //     display_infos
-//     //         .iter()
-//     //         .find(|&d| d.name == name)
-//     //         .cloned()
-//     //         .ok_or_else(|| anyhow::anyhow!("Get display info failed"))
-//     // }
-// }
+        display_infos
+            .iter()
+            .find(|&d| d.name == name)
+            .cloned()
+            .ok_or_else(|| DIError::new("Get display info failed"))
+    }
+}

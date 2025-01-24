@@ -1,46 +1,20 @@
-use crate::DisplayInfo;
-use anyhow::{anyhow, Result};
 use std::str;
 use xcb::x::{Atom, GetAtomName};
 use xcb::{
     randr::{
         GetCrtcInfo, GetMonitors, GetOutputInfo, GetScreenResources, Mode, ModeFlag, ModeInfo,
-        MonitorInfo, Output, Rotation,
+        Output, Rotation,
     },
     x::{GetProperty, Screen, ATOM_RESOURCE_MANAGER, ATOM_STRING},
     Connection, Xid,
 };
 
+use crate::error::{DIError, DIResult};
+use crate::DisplayInfo;
+
 pub type ScreenRawHandle = Output;
 
-impl DisplayInfo {
-    fn new(
-        name: String,
-        monitor_info: &MonitorInfo,
-        output: &Output,
-        rotation: f32,
-        scale_factor: f32,
-        frequency: f32,
-    ) -> Self {
-        DisplayInfo {
-            name,
-            id: output.resource_id(),
-            raw_handle: *output,
-            x: ((monitor_info.x() as f32) / scale_factor) as i32,
-            y: ((monitor_info.y() as f32) / scale_factor) as i32,
-            width: ((monitor_info.width() as f32) / scale_factor) as u32,
-            height: ((monitor_info.height() as f32) / scale_factor) as u32,
-            width_mm: monitor_info.width_in_millimeters() as i32,
-            height_mm: monitor_info.height_in_millimeters() as i32,
-            rotation,
-            scale_factor,
-            frequency,
-            is_primary: monitor_info.primary(),
-        }
-    }
-}
-
-fn get_name(conn: &Connection, atom: Atom) -> Result<String> {
+fn get_name(conn: &Connection, atom: Atom) -> DIResult<String> {
     let get_atom_value = conn.send_request(&GetAtomName { atom });
 
     let get_atom_value_reply = conn.wait_for_reply(get_atom_value)?;
@@ -72,7 +46,7 @@ fn get_current_frequency(mode_infos: &[ModeInfo], mode: Mode) -> f32 {
     }
 }
 
-fn get_scale_factor(conn: &Connection, screen: &Screen) -> Result<f32> {
+fn get_scale_factor(conn: &Connection, screen: &Screen) -> DIResult<f32> {
     let xft_dpi_prefix = "Xft.dpi:\t";
 
     let get_property_cookie = conn.send_request(&GetProperty {
@@ -91,11 +65,11 @@ fn get_scale_factor(conn: &Connection, screen: &Screen) -> Result<f32> {
     let xft_dpi = resource_manager
         .split('\n')
         .find(|s| s.starts_with(xft_dpi_prefix))
-        .ok_or_else(|| anyhow!("Xft.dpi parse failed"))?
+        .ok_or_else(|| DIError::new("Xft.dpi parse failed"))?
         .strip_prefix(xft_dpi_prefix)
-        .ok_or_else(|| anyhow!("Xft.dpi parse failed"))?;
+        .ok_or_else(|| DIError::new("Xft.dpi parse failed"))?;
 
-    let dpi = xft_dpi.parse::<f32>()?;
+    let dpi = xft_dpi.parse::<f32>().map_err(DIError::new)?;
 
     Ok(dpi / 96.0)
 }
@@ -104,7 +78,7 @@ fn get_rotation_frequency(
     conn: &Connection,
     mode_infos: &[ModeInfo],
     output: &Output,
-) -> Result<(f32, f32)> {
+) -> DIResult<(f32, f32)> {
     let get_output_info_cookie = conn.send_request(&GetOutputInfo {
         output: *output,
         config_timestamp: 0,
@@ -134,7 +108,7 @@ fn get_rotation_frequency(
     Ok((rotation, frequency))
 }
 
-pub fn get_all() -> Result<Vec<DisplayInfo>> {
+pub fn get_all() -> DIResult<Vec<DisplayInfo>> {
     let (conn, index) = Connection::connect(None)?;
 
     let setup = conn.get_setup();
@@ -142,7 +116,7 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
     let screen = setup
         .roots()
         .nth(index as usize)
-        .ok_or_else(|| anyhow!("Not found screen"))?;
+        .ok_or_else(|| DIError::new("Not found screen"))?;
 
     let scale_factor = get_scale_factor(&conn, screen).unwrap_or(1.0);
 
@@ -169,27 +143,34 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
         let output = monitor_info
             .outputs()
             .get(0)
-            .ok_or_else(|| anyhow!("Not found output"))?;
+            .ok_or_else(|| DIError::new("Not found output"))?;
 
         let (rotation, frequency) =
             get_rotation_frequency(&conn, mode_infos, output).unwrap_or((0.0, 0.0));
 
         let name = get_name(&conn, monitor_info.name())?;
 
-        display_infos.push(DisplayInfo::new(
+        display_infos.push(DisplayInfo {
             name,
-            monitor_info,
-            output,
+            id: output.resource_id(),
+            raw_handle: *output,
+            x: ((monitor_info.x() as f32) / scale_factor) as i32,
+            y: ((monitor_info.y() as f32) / scale_factor) as i32,
+            width: ((monitor_info.width() as f32) / scale_factor) as u32,
+            height: ((monitor_info.height() as f32) / scale_factor) as u32,
+            width_mm: monitor_info.width_in_millimeters() as i32,
+            height_mm: monitor_info.height_in_millimeters() as i32,
             rotation,
             scale_factor,
             frequency,
-        ));
+            is_primary: monitor_info.primary(),
+        });
     }
 
     Ok(display_infos)
 }
 
-pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
+pub fn get_from_point(x: i32, y: i32) -> DIResult<DisplayInfo> {
     let display_infos = DisplayInfo::all()?;
 
     display_infos
@@ -201,5 +182,5 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
                 && y < display_info.y + display_info.height as i32
         })
         .cloned()
-        .ok_or_else(|| anyhow!("Get display info failed"))
+        .ok_or_else(|| DIError::new("Get display info failed"))
 }

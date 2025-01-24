@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Result};
 use smithay_client_toolkit::output::{OutputHandler, OutputInfo, OutputState};
 use smithay_client_toolkit::reexports::client::globals::registry_queue_init;
 use smithay_client_toolkit::reexports::client::protocol::wl_output;
@@ -7,6 +6,7 @@ use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
 use smithay_client_toolkit::{delegate_output, delegate_registry, registry_handlers};
 use xcb::XidNew;
 
+use crate::error::{DIError, DIResult};
 use crate::DisplayInfo;
 
 impl From<&OutputInfo> for DisplayInfo {
@@ -94,7 +94,7 @@ impl ProvidesRegistryState for ListOutputs {
     }
 }
 
-pub fn get_all() -> Result<Vec<DisplayInfo>> {
+pub fn get_all() -> DIResult<Vec<DisplayInfo>> {
     let conn = Connection::connect_to_env()?;
 
     let (globals, mut event_queue) = registry_queue_init(&conn).unwrap();
@@ -119,12 +119,12 @@ pub fn get_all() -> Result<Vec<DisplayInfo>> {
                 .output_state
                 .info(&output)
                 .map(|o| DisplayInfo::from(&o))
-                .ok_or(anyhow!("Cannot get info from Output in Wayland"))
+                .ok_or(DIError::new("Cannot get info from Output in Wayland"))
         })
-        .collect::<Result<Vec<DisplayInfo>>>()
+        .collect::<DIResult<Vec<DisplayInfo>>>()
 }
 
-pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
+pub fn get_from_point(x: i32, y: i32) -> DIResult<DisplayInfo> {
     let display_infos = get_all()?;
 
     display_infos
@@ -136,5 +136,5 @@ pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
                 && y - (d.height as i32) < d.y + d.height as i32
         })
         .cloned()
-        .ok_or_else(|| anyhow!("Get display info failed"))
+        .ok_or_else(|| DIError::new("Get display info failed"))
 }
