@@ -25,7 +25,7 @@ use linux::{get_all, get_from_point, ScreenRawHandle};
 #[cfg(target_os = "macos")]
 mod macos;
 #[cfg(target_os = "macos")]
-use macos::{get_all, get_from_point, ScreenRawHandle};
+use macos::ScreenRawHandle;
 
 #[cfg(target_os = "windows")]
 mod windows;

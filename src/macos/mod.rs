@@ -1,6 +1,9 @@
-use crate::DisplayInfo;
-use anyhow::{anyhow, Result};
 use core_graphics::display::{CGDirectDisplayID, CGDisplay, CGError, CGPoint, CGRect, CGSize};
+
+use crate::{
+    error::{DIError, DIResult},
+    DisplayInfo,
+};
 
 pub type ScreenRawHandle = CGDisplay;
 
@@ -39,47 +42,47 @@ impl DisplayInfo {
             is_primary: cg_display.is_main(),
         }
     }
-}
 
-pub fn get_all() -> Result<Vec<DisplayInfo>> {
-    let display_ids =
-        CGDisplay::active_displays().map_err(|e| anyhow!("Get active displays error: {}", e))?;
+    pub fn all() -> DIResult<Vec<DisplayInfo>> {
+        let display_ids = CGDisplay::active_displays()
+            .map_err(|e| DIError::new(format!("Get active displays error: {}", e)))?;
 
-    let mut display_infos: Vec<DisplayInfo> = Vec::with_capacity(display_ids.len());
+        let mut display_infos: Vec<DisplayInfo> = Vec::with_capacity(display_ids.len());
 
-    for display_id in display_ids {
-        display_infos.push(DisplayInfo::new(display_id));
+        for display_id in display_ids {
+            display_infos.push(DisplayInfo::new(display_id));
+        }
+
+        Ok(display_infos)
     }
 
-    Ok(display_infos)
-}
+    pub fn from_point(x: i32, y: i32) -> DIResult<DisplayInfo> {
+        let point = CGPoint {
+            x: x as f64,
+            y: y as f64,
+        };
+        let max_displays: u32 = 16;
+        let mut display_ids: Vec<CGDirectDisplayID> = vec![0; max_displays as usize];
+        let mut display_count: u32 = 0;
 
-pub fn get_from_point(x: i32, y: i32) -> Result<DisplayInfo> {
-    let point = CGPoint {
-        x: x as f64,
-        y: y as f64,
-    };
-    let max_displays: u32 = 16;
-    let mut display_ids: Vec<CGDirectDisplayID> = vec![0; max_displays as usize];
-    let mut display_count: u32 = 0;
+        let cg_error = unsafe {
+            CGGetDisplaysWithPoint(
+                point,
+                max_displays,
+                display_ids.as_mut_ptr(),
+                &mut display_count,
+            )
+        };
 
-    let cg_error = unsafe {
-        CGGetDisplaysWithPoint(
-            point,
-            max_displays,
-            display_ids.as_mut_ptr(),
-            &mut display_count,
-        )
-    };
+        if cg_error != 0 || display_count == 0 {
+            return Err(DIError::new("Get displays with point failed"));
+        }
 
-    if cg_error != 0 || display_count == 0 {
-        return Err(anyhow!("Get displays with point failed"));
-    }
-
-    if let Some(&display_id) = display_ids.first() {
-        Ok(DisplayInfo::new(display_id))
-    } else {
-        Err(anyhow!("Display not found"))
+        if let Some(&display_id) = display_ids.first() {
+            Ok(DisplayInfo::new(display_id))
+        } else {
+            Err(DIError::new("Display not found"))
+        }
     }
 }
 

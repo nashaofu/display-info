@@ -11,6 +11,13 @@ pub enum DIError {
     Utf16Error(#[from] widestring::error::Utf16Error),
 }
 
+#[cfg(target_os = "macos")]
+#[derive(Debug, Error)]
+pub enum DIError {
+    #[error("{0}")]
+    Error(String),
+}
+
 impl DIError {
     pub fn new<S: ToString>(err: S) -> Self {
         DIError::Error(err.to_string())
