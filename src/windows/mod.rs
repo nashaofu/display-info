@@ -1,7 +1,7 @@
 use std::{mem, ptr};
 
 use scopeguard::guard;
-use utils::{get_dev_mode_w, get_scale_factor, monitor_enum_proc};
+use utils::{get_dev_mode_w, get_display_friendly_name, get_scale_factor, monitor_enum_proc};
 use widestring::U16CString;
 use windows::{
     core::PCWSTR,
@@ -81,6 +81,8 @@ impl DisplayInfo {
         Ok(DisplayInfo {
             id: h_monitor.0 as u32,
             name,
+            friendly_name: get_display_friendly_name(monitor_info_ex_w)
+                .unwrap_or(format!("Unknown Display {}", h_monitor.0 as u32)),
             raw_handle: h_monitor,
             x: dm_position.x,
             y: dm_position.y,

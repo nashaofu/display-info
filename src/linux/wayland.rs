@@ -30,6 +30,10 @@ impl From<&OutputInfo> for DisplayInfo {
         DisplayInfo {
             id: info.id,
             name: info.name.clone().unwrap_or_default(),
+            friendly_name: info
+                .name
+                .clone()
+                .unwrap_or(format!("Unknown Display {}", info.id)),
             raw_handle: unsafe { xcb::randr::Output::new(info.id) },
             x: ((x as f32) / scale_factor) as i32,
             y: ((y as f32) / scale_factor) as i32,

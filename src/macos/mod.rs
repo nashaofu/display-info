@@ -1,56 +1,105 @@
-use core_graphics::display::{CGDirectDisplayID, CGDisplay, CGError, CGPoint, CGRect, CGSize};
+use objc2::MainThreadMarker;
+use objc2_app_kit::NSScreen;
+use objc2_core_foundation::{CGPoint, CGRect};
+use objc2_core_graphics::{
+    CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyDisplayMode, CGDisplayIsMain,
+    CGDisplayModeGetPixelWidth, CGDisplayModeGetRefreshRate, CGDisplayRotation,
+    CGDisplayScreenSize, CGError, CGGetActiveDisplayList, CGGetDisplaysWithPoint,
+};
+use objc2_foundation::{NSNumber, NSString};
 
 use crate::{
     error::{DIError, DIResult},
     DisplayInfo,
 };
 
-pub type ScreenRawHandle = CGDisplay;
+pub type ScreenRawHandle = CGDirectDisplayID;
+
+fn get_display_friendly_name(display_id: CGDirectDisplayID) -> DIResult<String> {
+    let screens = NSScreen::screens(unsafe { MainThreadMarker::new_unchecked() });
+    for screen in screens {
+        let device_description = screen.deviceDescription();
+        let screen_number = device_description
+            .objectForKey(&NSString::from_str("NSScreenNumber"))
+            .ok_or(DIError::new("Get NSScreenNumber failed"))?;
+
+        let screen_id = screen_number
+            .downcast::<NSNumber>()
+            .map_err(|err| DIError::new(format!("{:?}", err)))?
+            .unsignedIntValue();
+
+        if screen_id == display_id {
+            unsafe { return Ok(screen.localizedName().to_string()) };
+        }
+    }
+
+    Err(DIError::new(format!(
+        "Get display {} friendly name failed",
+        display_id
+    )))
+}
 
 impl DisplayInfo {
-    fn new(id: CGDirectDisplayID) -> Self {
-        let cg_display = CGDisplay::new(id);
-        let CGRect { origin, size } = cg_display.bounds();
+    fn new(id: CGDirectDisplayID) -> DIResult<Self> {
+        unsafe {
+            let CGRect { origin, size } = CGDisplayBounds(id);
 
-        let rotation = cg_display.rotation() as f32;
-        let (scale_factor, frequency) = cg_display
-            .display_mode()
-            .map(|display_mode| {
-                let pixel_width = display_mode.pixel_width();
-                let scale_factor = pixel_width as f32 / size.width as f32;
-                let refresh_rate = display_mode.refresh_rate() as f32;
+            let rotation = CGDisplayRotation(id) as f32;
 
-                (scale_factor, refresh_rate)
+            let display_mode = CGDisplayCopyDisplayMode(id);
+            let pixel_width = CGDisplayModeGetPixelWidth(display_mode.as_deref());
+            let scale_factor = pixel_width as f32 / size.width as f32;
+            let frequency = CGDisplayModeGetRefreshRate(display_mode.as_deref()) as f32;
+
+            let size_mm = CGDisplayScreenSize(id);
+            let is_primary = CGDisplayIsMain(id);
+
+            Ok(DisplayInfo {
+                id,
+                name: format!("Display {id}"),
+                friendly_name: get_display_friendly_name(id)
+                    .unwrap_or(format!("Unknown Display {}", id)),
+                raw_handle: id,
+                x: origin.x as i32,
+                y: origin.y as i32,
+                width: size.width as u32,
+                height: size.height as u32,
+                width_mm: size_mm.width as i32,
+                height_mm: size_mm.height as i32,
+                rotation,
+                frequency,
+                scale_factor,
+                is_primary,
             })
-            .unwrap_or((1.0, 0.0));
-
-        let size_mm = unsafe { CGDisplayScreenSize(id) };
-
-        DisplayInfo {
-            id,
-            name: format!("Display {id}"),
-            raw_handle: cg_display,
-            x: origin.x as i32,
-            y: origin.y as i32,
-            width: size.width as u32,
-            height: size.height as u32,
-            width_mm: size_mm.width as i32,
-            height_mm: size_mm.height as i32,
-            rotation,
-            frequency,
-            scale_factor,
-            is_primary: cg_display.is_main(),
         }
     }
 
     pub fn all() -> DIResult<Vec<DisplayInfo>> {
-        let display_ids = CGDisplay::active_displays()
-            .map_err(|e| DIError::new(format!("Get active displays error: {}", e)))?;
+        let max_displays: u32 = 16;
+        let mut active_displays: Vec<CGDirectDisplayID> = vec![0; max_displays as usize];
+        let mut display_count: u32 = 0;
 
-        let mut display_infos: Vec<DisplayInfo> = Vec::with_capacity(display_ids.len());
+        let cg_error = unsafe {
+            CGGetActiveDisplayList(
+                max_displays,
+                active_displays.as_mut_ptr(),
+                &mut display_count,
+            )
+        };
 
-        for display_id in display_ids {
-            display_infos.push(DisplayInfo::new(display_id));
+        if cg_error != CGError::Success {
+            return Err(DIError::new(format!(
+                "CGGetActiveDisplayList failed: {:?}",
+                cg_error
+            )));
+        }
+
+        active_displays.truncate(display_count as usize);
+
+        let mut display_infos = Vec::with_capacity(active_displays.len());
+
+        for display in active_displays {
+            display_infos.push(DisplayInfo::new(display)?);
         }
 
         Ok(display_infos)
@@ -61,6 +110,7 @@ impl DisplayInfo {
             x: x as f64,
             y: y as f64,
         };
+
         let max_displays: u32 = 16;
         let mut display_ids: Vec<CGDirectDisplayID> = vec![0; max_displays as usize];
         let mut display_count: u32 = 0;
@@ -74,26 +124,17 @@ impl DisplayInfo {
             )
         };
 
-        if cg_error != 0 || display_count == 0 {
-            return Err(DIError::new("Get displays with point failed"));
+        if cg_error != CGError::Success {
+            return Err(DIError::new(format!(
+                "CGGetDisplaysWithPoint failed: {:?}",
+                cg_error
+            )));
         }
 
         if let Some(&display_id) = display_ids.first() {
-            Ok(DisplayInfo::new(display_id))
+            DisplayInfo::new(display_id)
         } else {
             Err(DIError::new("Display not found"))
         }
     }
-}
-
-#[link(name = "CoreGraphics", kind = "framework")]
-extern "C" {
-    fn CGGetDisplaysWithPoint(
-        point: CGPoint,
-        max_displays: u32,
-        displays: *mut CGDirectDisplayID,
-        display_count: *mut u32,
-    ) -> CGError;
-
-    fn CGDisplayScreenSize(displays: CGDirectDisplayID) -> CGSize;
 }

@@ -25,6 +25,7 @@ fn main() {
 
 -   `id` u32 - Unique identifier associated with the display.
 -   `name` String - The name of the display
+-   `friendly_name` String - The display friendly name,
 -   `raw_handle` CGDisplay/HMONITOR/Output - Native display raw handle
 -   `x` i32 - The display x coordinate.
 -   `y` i32 - The display y coordinate.

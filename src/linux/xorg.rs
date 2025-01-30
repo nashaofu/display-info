@@ -151,8 +151,9 @@ pub fn get_all() -> DIResult<Vec<DisplayInfo>> {
         let name = get_name(&conn, monitor_info.name())?;
 
         display_infos.push(DisplayInfo {
-            name,
             id: output.resource_id(),
+            name: name.clone(),
+            friendly_name: name,
             raw_handle: *output,
             x: ((monitor_info.x() as f32) / scale_factor) as i32,
             y: ((monitor_info.y() as f32) / scale_factor) as i32,
