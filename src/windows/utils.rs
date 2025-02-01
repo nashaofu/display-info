@@ -14,8 +14,8 @@ use windows::{
         },
         Foundation::{FreeLibrary, GetLastError, BOOL, HANDLE, HMODULE, LPARAM, RECT, TRUE},
         Graphics::Gdi::{
-            EnumDisplaySettingsW, GetDeviceCaps, DESKTOPHORZRES, DEVMODEW, ENUM_CURRENT_SETTINGS,
-            HDC, HMONITOR, HORZRES, MONITORINFOEXW,
+            EnumDisplayDevicesW, EnumDisplaySettingsW, GetDeviceCaps, DESKTOPHORZRES, DEVMODEW,
+            DISPLAY_DEVICEW, ENUM_CURRENT_SETTINGS, HDC, HMONITOR, HORZRES, MONITORINFOEXW,
         },
         System::{
             LibraryLoader::{GetProcAddress, LoadLibraryW},
@@ -156,6 +156,25 @@ pub(super) fn get_scale_factor(
     Ok(scale_factor)
 }
 
+fn get_display_device_string(monitor_info_ex_w: MONITORINFOEXW) -> DIResult<String> {
+    unsafe {
+        let mut display_device = DISPLAY_DEVICEW::default();
+        display_device.cb = mem::size_of::<DISPLAY_DEVICEW>() as u32;
+        EnumDisplayDevicesW(
+            PCWSTR(monitor_info_ex_w.szDevice.as_ptr()),
+            0,
+            &mut display_device,
+            0,
+        )
+        .ok()?;
+
+        let device_string =
+            U16CString::from_vec_truncate(display_device.DeviceString).to_string()?;
+
+        Ok(device_string)
+    }
+}
+
 pub(super) fn get_display_friendly_name(monitor_info_ex_w: MONITORINFOEXW) -> DIResult<String> {
     unsafe {
         let mut number_of_paths = 0;
@@ -213,12 +232,12 @@ pub(super) fn get_display_friendly_name(monitor_info_ex_w: MONITORINFOEXW) -> DI
                 U16CString::from_vec_truncate(target.monitorFriendlyDeviceName).to_string()?;
 
             if name.is_empty() {
-                return Err(DIError::new("Get display empty friendly name"));
+                return get_display_device_string(monitor_info_ex_w);
             }
 
             return Ok(name);
         }
 
-        Err(DIError::new("Get display friendly name failed"))
+        get_display_device_string(monitor_info_ex_w)
     }
 }
