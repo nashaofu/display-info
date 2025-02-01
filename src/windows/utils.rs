@@ -158,8 +158,10 @@ pub(super) fn get_scale_factor(
 
 fn get_display_device_string(monitor_info_ex_w: MONITORINFOEXW) -> DIResult<String> {
     unsafe {
-        let mut display_device = DISPLAY_DEVICEW::default();
-        display_device.cb = mem::size_of::<DISPLAY_DEVICEW>() as u32;
+        let mut display_device = DISPLAY_DEVICEW {
+            cb: mem::size_of::<DISPLAY_DEVICEW>() as u32,
+            ..DISPLAY_DEVICEW::default()
+        };
         EnumDisplayDevicesW(
             PCWSTR(monitor_info_ex_w.szDevice.as_ptr()),
             0,
@@ -200,12 +202,14 @@ pub(super) fn get_display_friendly_name(monitor_info_ex_w: MONITORINFOEXW) -> DI
         .ok()?;
 
         for path in paths {
-            let mut source = DISPLAYCONFIG_SOURCE_DEVICE_NAME::default();
-            source.header = DISPLAYCONFIG_DEVICE_INFO_HEADER {
-                r#type: DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME,
-                size: mem::size_of::<DISPLAYCONFIG_SOURCE_DEVICE_NAME>() as u32,
-                adapterId: path.sourceInfo.adapterId,
-                id: path.sourceInfo.id,
+            let mut source = DISPLAYCONFIG_SOURCE_DEVICE_NAME {
+                header: DISPLAYCONFIG_DEVICE_INFO_HEADER {
+                    r#type: DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME,
+                    size: mem::size_of::<DISPLAYCONFIG_SOURCE_DEVICE_NAME>() as u32,
+                    adapterId: path.sourceInfo.adapterId,
+                    id: path.sourceInfo.id,
+                },
+                ..DISPLAYCONFIG_SOURCE_DEVICE_NAME::default()
             };
 
             if DisplayConfigGetDeviceInfo(&mut source.header) != 0 {
@@ -216,12 +220,14 @@ pub(super) fn get_display_friendly_name(monitor_info_ex_w: MONITORINFOEXW) -> DI
                 continue;
             }
 
-            let mut target = DISPLAYCONFIG_TARGET_DEVICE_NAME::default();
-            target.header = DISPLAYCONFIG_DEVICE_INFO_HEADER {
-                r#type: DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME,
-                size: mem::size_of::<DISPLAYCONFIG_TARGET_DEVICE_NAME>() as u32,
-                adapterId: path.sourceInfo.adapterId,
-                id: path.targetInfo.id,
+            let mut target = DISPLAYCONFIG_TARGET_DEVICE_NAME {
+                header: DISPLAYCONFIG_DEVICE_INFO_HEADER {
+                    r#type: DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME,
+                    size: mem::size_of::<DISPLAYCONFIG_TARGET_DEVICE_NAME>() as u32,
+                    adapterId: path.sourceInfo.adapterId,
+                    id: path.targetInfo.id,
+                },
+                ..DISPLAYCONFIG_TARGET_DEVICE_NAME::default()
             };
 
             if DisplayConfigGetDeviceInfo(&mut target.header) != 0 {
