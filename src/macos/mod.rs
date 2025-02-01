@@ -16,10 +16,7 @@ use crate::{
 pub type ScreenRawHandle = CGDirectDisplayID;
 
 fn get_display_friendly_name(display_id: CGDirectDisplayID) -> DIResult<String> {
-    let main_thread_marker = MainThreadMarker::new()
-        .ok_or(DIError::new("The current thread is not the main thread."))?;
-
-    let screens = NSScreen::screens(main_thread_marker);
+    let screens = NSScreen::screens(unsafe { MainThreadMarker::new_unchecked() });
     for screen in screens {
         let device_description = screen.deviceDescription();
         let screen_number = device_description
