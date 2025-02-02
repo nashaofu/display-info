@@ -37,8 +37,10 @@ use windows::ScreenRawHandle;
 pub struct DisplayInfo {
     /// Unique identifier associated with the display.
     pub id: u32,
-    /// The Display Name
+    /// The display name
     pub name: String,
+    /// The display friendly name
+    pub friendly_name: String,
     /// Native screen raw handle
     pub raw_handle: ScreenRawHandle,
     /// The display x coordinate.
