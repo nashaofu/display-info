@@ -3,7 +3,7 @@ use std::mem;
 use scopeguard::{guard, ScopeGuard};
 use widestring::U16CString;
 use windows::{
-    core::{s, w, HRESULT, PCWSTR},
+    core::{s, w, BOOL, HRESULT, PCWSTR},
     Win32::{
         Devices::Display::{
             DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QueryDisplayConfig,
@@ -12,7 +12,7 @@ use windows::{
             DISPLAYCONFIG_SOURCE_DEVICE_NAME, DISPLAYCONFIG_TARGET_DEVICE_NAME,
             QDC_ONLY_ACTIVE_PATHS,
         },
-        Foundation::{FreeLibrary, GetLastError, BOOL, HANDLE, HMODULE, LPARAM, RECT, TRUE},
+        Foundation::{FreeLibrary, GetLastError, HANDLE, HMODULE, LPARAM, RECT, TRUE},
         Graphics::Gdi::{
             EnumDisplayDevicesW, EnumDisplaySettingsW, GetDeviceCaps, DESKTOPHORZRES, DEVMODEW,
             DISPLAY_DEVICEW, ENUM_CURRENT_SETTINGS, HDC, HMONITOR, HORZRES, MONITORINFOEXW,
