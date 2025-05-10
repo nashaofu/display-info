@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 #[derive(Debug, Error)]
 pub enum DIError {
     #[error("{0}")]
@@ -11,10 +11,13 @@ pub enum DIError {
     XcbError(#[from] xcb::Error),
     #[error(transparent)]
     XcbConnError(#[from] xcb::ConnError),
+
+    #[cfg(target_os = "linux")]
     #[error(transparent)]
     SmithayClientToolkitClientDispatchError(
         #[from] smithay_client_toolkit::reexports::client::DispatchError,
     ),
+    #[cfg(target_os = "linux")]
     #[error(transparent)]
     SmithayClientToolkitClientConnectError(
         #[from] smithay_client_toolkit::reexports::client::ConnectError,
