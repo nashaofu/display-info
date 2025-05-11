@@ -23,10 +23,9 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "wengerk.highlight-bad-chars",
                 "streetsidesoftware.code-spell-checker",
-                "serayuzgur.crates",
-                "EditorConfig.EditorConfig",
+                "wengerk.highlight-bad-chars",
+                "editorconfig.editorconfig",
                 "tamasfe.even-better-toml",
                 "rust-lang.rust-analyzer"
             ]
