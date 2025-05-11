@@ -114,10 +114,13 @@ impl DisplayInfo {
         let mut impl_monitors = Vec::with_capacity(h_monitors.len());
 
         for &h_monitor in h_monitors.iter() {
-            if let Ok(impl_monitor) = DisplayInfo::new(h_monitor) {
-                impl_monitors.push(impl_monitor);
-            } else {
-                log::error!("ImplMonitor::new({:?}) failed", h_monitor);
+            match DisplayInfo::new(h_monitor) {
+                Ok(impl_monitor) => {
+                    impl_monitors.push(impl_monitor);
+                }
+                _ => {
+                    log::error!("ImplMonitor::new({:?}) failed", h_monitor);
+                }
             }
         }
 
