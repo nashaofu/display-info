@@ -16,7 +16,8 @@ scopeguard = "1.2"
 thiserror = "2.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2 = "0.6.0"
+# On macos use feature relax-sign-encoding to avoid runtime crash (https://github.com/rust-windowing/winit/pull/4302)
+objc2 = { version = "0.6.0", features = ["relax-sign-encoding"] }
 objc2-app-kit = "0.3.0"
 objc2-core-foundation = "0.3.0"
 objc2-core-graphics = "0.3.0"
