@@ -6,8 +6,8 @@ use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
 use smithay_client_toolkit::{delegate_output, delegate_registry, registry_handlers};
 use xcb::XidNew;
 
-use crate::error::{DIError, DIResult};
 use crate::DisplayInfo;
+use crate::error::{DIError, DIResult};
 
 impl From<&OutputInfo> for DisplayInfo {
     fn from(info: &OutputInfo) -> Self {

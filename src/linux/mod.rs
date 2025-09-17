@@ -2,7 +2,7 @@ use std::env::var_os;
 
 pub use xorg::ScreenRawHandle;
 
-use crate::{error::DIResult, DisplayInfo};
+use crate::{DisplayInfo, error::DIResult};
 
 mod wayland;
 mod xorg;

@@ -1,27 +1,27 @@
 use std::mem;
 
-use scopeguard::{guard, ScopeGuard};
+use scopeguard::{ScopeGuard, guard};
 use widestring::U16CString;
 use windows::{
-    core::{s, w, HRESULT, PCWSTR},
     Win32::{
         Devices::Display::{
-            DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QueryDisplayConfig,
             DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME, DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME,
             DISPLAYCONFIG_DEVICE_INFO_HEADER, DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_PATH_INFO,
             DISPLAYCONFIG_SOURCE_DEVICE_NAME, DISPLAYCONFIG_TARGET_DEVICE_NAME,
-            QDC_ONLY_ACTIVE_PATHS,
+            DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QDC_ONLY_ACTIVE_PATHS,
+            QueryDisplayConfig,
         },
-        Foundation::{FreeLibrary, GetLastError, BOOL, HANDLE, HMODULE, LPARAM, RECT, TRUE},
+        Foundation::{FreeLibrary, GetLastError, HANDLE, HMODULE, LPARAM, RECT, TRUE},
         Graphics::Gdi::{
-            EnumDisplayDevicesW, EnumDisplaySettingsW, GetDeviceCaps, DESKTOPHORZRES, DEVMODEW,
-            DISPLAY_DEVICEW, ENUM_CURRENT_SETTINGS, HDC, HMONITOR, HORZRES, MONITORINFOEXW,
+            DESKTOPHORZRES, DEVMODEW, DISPLAY_DEVICEW, ENUM_CURRENT_SETTINGS, EnumDisplayDevicesW,
+            EnumDisplaySettingsW, GetDeviceCaps, HDC, HMONITOR, HORZRES, MONITORINFOEXW,
         },
         System::{
             LibraryLoader::{GetProcAddress, LoadLibraryW},
             Threading::GetCurrentProcess,
         },
     },
+    core::{BOOL, HRESULT, PCWSTR, s, w},
 };
 
 use crate::error::{DIError, DIResult};

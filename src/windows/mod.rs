@@ -4,21 +4,21 @@ use scopeguard::guard;
 use utils::{get_dev_mode_w, get_display_friendly_name, get_scale_factor, monitor_enum_proc};
 use widestring::U16CString;
 use windows::{
-    core::PCWSTR,
     Win32::{
         Foundation::{LPARAM, POINT},
         Graphics::Gdi::{
-            CreateDCW, DeleteDC, EnumDisplayMonitors, GetDeviceCaps, GetMonitorInfoW,
-            MonitorFromPoint, DMDO_180, DMDO_270, DMDO_90, DMDO_DEFAULT, HMONITOR, HORZSIZE,
-            MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONULL, VERTSIZE,
+            CreateDCW, DMDO_90, DMDO_180, DMDO_270, DMDO_DEFAULT, DeleteDC, EnumDisplayMonitors,
+            GetDeviceCaps, GetMonitorInfoW, HMONITOR, HORZSIZE, MONITOR_DEFAULTTONULL, MONITORINFO,
+            MONITORINFOEXW, MonitorFromPoint, VERTSIZE,
         },
         UI::WindowsAndMessaging::MONITORINFOF_PRIMARY,
     },
+    core::PCWSTR,
 };
 
 use crate::{
-    error::{DIError, DIResult},
     DisplayInfo,
+    error::{DIError, DIResult},
 };
 
 mod utils;
