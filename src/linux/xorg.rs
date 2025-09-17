@@ -141,8 +141,7 @@ pub fn get_all() -> DIResult<Vec<DisplayInfo>> {
 
     for monitor_info in monitor_info_iterator {
         let output = monitor_info
-            .outputs()
-            .get(0)
+            .outputs().first()
             .ok_or_else(|| DIError::new("Not found output"))?;
 
         let (rotation, frequency) =
