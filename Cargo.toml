@@ -1,6 +1,6 @@
 [package]
 name = "display-info"
-version = "0.5.5"
+version = "0.5.6"
 edition = "2024"
 description = "Cross-platform get display info"
 license-file = "LICENSE"
