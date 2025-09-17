@@ -2,15 +2,15 @@ use objc2::MainThreadMarker;
 use objc2_app_kit::NSScreen;
 use objc2_core_foundation::{CGPoint, CGRect};
 use objc2_core_graphics::{
-    CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyDisplayMode, CGDisplayIsMain,
-    CGDisplayModeGetPixelWidth, CGDisplayModeGetRefreshRate, CGDisplayRotation,
-    CGDisplayScreenSize, CGError, CGGetActiveDisplayList, CGGetDisplaysWithPoint,
+    CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyDisplayMode, CGDisplayIsMain, CGDisplayMode,
+    CGDisplayRotation, CGDisplayScreenSize, CGError, CGGetActiveDisplayList,
+    CGGetDisplaysWithPoint,
 };
 use objc2_foundation::{NSNumber, NSString};
 
 use crate::{
-    error::{DIError, DIResult},
     DisplayInfo,
+    error::{DIError, DIResult},
 };
 
 pub type ScreenRawHandle = CGDirectDisplayID;
@@ -47,9 +47,9 @@ impl DisplayInfo {
             let rotation = CGDisplayRotation(id) as f32;
 
             let display_mode = CGDisplayCopyDisplayMode(id);
-            let pixel_width = CGDisplayModeGetPixelWidth(display_mode.as_deref());
+            let pixel_width = CGDisplayMode::pixel_width(display_mode.as_deref());
             let scale_factor = pixel_width as f32 / size.width as f32;
-            let frequency = CGDisplayModeGetRefreshRate(display_mode.as_deref()) as f32;
+            let frequency = CGDisplayMode::refresh_rate(display_mode.as_deref()) as f32;
 
             let size_mm = CGDisplayScreenSize(id);
             let is_primary = CGDisplayIsMain(id);
