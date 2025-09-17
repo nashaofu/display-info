@@ -1,16 +1,16 @@
 use std::str;
 use xcb::x::{Atom, GetAtomName};
 use xcb::{
+    Connection, Xid,
     randr::{
         GetCrtcInfo, GetMonitors, GetOutputInfo, GetScreenResources, Mode, ModeFlag, ModeInfo,
         Output, Rotation,
     },
-    x::{GetProperty, Screen, ATOM_RESOURCE_MANAGER, ATOM_STRING},
-    Connection, Xid,
+    x::{ATOM_RESOURCE_MANAGER, ATOM_STRING, GetProperty, Screen},
 };
 
-use crate::error::{DIError, DIResult};
 use crate::DisplayInfo;
+use crate::error::{DIError, DIResult};
 
 pub type ScreenRawHandle = Output;
 
@@ -141,7 +141,8 @@ pub fn get_all() -> DIResult<Vec<DisplayInfo>> {
 
     for monitor_info in monitor_info_iterator {
         let output = monitor_info
-            .outputs().first()
+            .outputs()
+            .first()
             .ok_or_else(|| DIError::new("Not found output"))?;
 
         let (rotation, frequency) =
