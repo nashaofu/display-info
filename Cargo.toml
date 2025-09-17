@@ -1,7 +1,7 @@
 [package]
 name = "display-info"
 version = "0.5.5"
-edition = "2021"
+edition = "2024"
 description = "Cross-platform get display info"
 license-file = "LICENSE"
 documentation = "https://docs.rs/display-info"
@@ -17,16 +17,16 @@ thiserror = "2.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # On macos use feature relax-sign-encoding to avoid runtime crash (https://github.com/rust-windowing/winit/pull/4302)
-objc2 = { version = "0.6.0", features = ["relax-sign-encoding"] }
-objc2-app-kit = "0.3.0"
-objc2-core-foundation = "0.3.0"
-objc2-core-graphics = "0.3.0"
-objc2-foundation = "0.3.0"
+objc2 = { version = "0.6.2", features = ["relax-sign-encoding"] }
+objc2-app-kit = "0.3.1"
+objc2-core-foundation = "0.3.1"
+objc2-core-graphics = "0.3.1"
+objc2-foundation = "0.3.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 fxhash = "0.2"
-widestring = "1.0"
-windows = { version = "0.59", features = [
+widestring = "1.2"
+windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
     "Win32_Devices_Display",
@@ -36,5 +36,5 @@ windows = { version = "0.59", features = [
 ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-xcb = { version = "1.3", features = ["randr"] }
-smithay-client-toolkit = { version = "0.19", default-features = false }
+xcb = { version = "1.6", features = ["randr"] }
+smithay-client-toolkit = { version = "0.20", default-features = false }
