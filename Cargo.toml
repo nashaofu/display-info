@@ -35,6 +35,6 @@ windows = { version = "0.62", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 
-[target.'cfg(target_os = "linux")'.dependencies]
+[target.'cfg(all(target_family = "unix", not(target_os = "macos")))'.dependencies]
 xcb = { version = "1.6", features = ["randr"] }
 smithay-client-toolkit = { version = "0.20", default-features = false }
