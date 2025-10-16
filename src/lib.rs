@@ -18,9 +18,9 @@
 pub mod error;
 use error::{DIError, DIResult};
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_family = "unix", not(target_os = "macos")))]
 mod linux;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_family = "unix", not(target_os = "macos")))]
 use linux::ScreenRawHandle;
 
 #[cfg(target_os = "macos")]

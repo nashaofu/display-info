@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_family = "unix", not(target_os = "macos")))]
 #[derive(Debug, Error)]
 pub enum DIError {
     #[error("{0}")]
