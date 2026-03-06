@@ -23,20 +23,20 @@ fn main() {
 
 ## DisplayInfo struct
 
--   `id` u32 - Unique identifier associated with the display.
--   `name` String - The name of the display
--   `friendly_name` String - The display friendly name,
--   `raw_handle` CGDisplay/HMONITOR/Output - Native display raw handle
--   `x` i32 - The display x coordinate.
--   `y` i32 - The display y coordinate.
--   `width` u32 - The display pixel width.
--   `height` u32 - The display pixel height.
--   `width_mm` i32 - The width of a display in millimeters. This value may be 0.
--   `height_mm` i32 - The height of a display in millimeters. This value may be 0.
--   `rotation` f32 - Can be 0, 90, 180, 270, represents screen rotation in clock-wise degrees.
--   `scale_factor` f32 - Output device's pixel scale factor.
--   `frequency` f32 - The display refresh rate.
--   `is_primary` bool - Whether the screen is the main screen
+- `id` u32 - Unique identifier associated with the display.
+- `name` String - The name of the display
+- `friendly_name` String - The display friendly name,
+- `raw_handle` CGDisplay/HMONITOR/Output - Native display raw handle
+- `x` i32 - The display x coordinate.
+- `y` i32 - The display y coordinate.
+- `width` u32 - The display pixel width.
+- `height` u32 - The display pixel height.
+- `width_mm` i32 - The width of a display in millimeters. This value may be 0.
+- `height_mm` i32 - The height of a display in millimeters. This value may be 0.
+- `rotation` f32 - Can be 0, 90, 180, 270, represents screen rotation in clock-wise degrees.
+- `scale_factor` f32 - Output device's pixel scale factor.
+- `frequency` f32 - The display refresh rate.
+- `is_primary` bool - Whether the screen is the main screen
 
 ## Linux requirements
 
