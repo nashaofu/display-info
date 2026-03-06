@@ -216,7 +216,7 @@ pub fn get_all() -> DIResult<Vec<DisplayInfo>> {
         display_infos.push(DisplayInfo {
             id: output.resource_id(),
             name: name.clone(),
-            friendly_name: name,
+            friendly_name: name.clone(),
             raw_handle: *output,
             x: ((monitor_info.x() as f32) / scale_factor) as i32,
             y: ((monitor_info.y() as f32) / scale_factor) as i32,
