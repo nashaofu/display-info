@@ -1,7 +1,10 @@
 use std::{mem, ptr};
 
 use scopeguard::guard;
-use utils::{get_dev_mode_w, get_display_friendly_name, get_scale_factor, monitor_enum_proc};
+use utils::{
+    get_dev_mode_w, get_display_friendly_name, get_scale_factor, is_display_builtin,
+    monitor_enum_proc,
+};
 use widestring::U16CString;
 use windows::{
     Win32::{
@@ -94,6 +97,7 @@ impl DisplayInfo {
             scale_factor,
             frequency: dev_mode_w.dmDisplayFrequency as f32,
             is_primary: monitor_info_ex_w.monitorInfo.dwFlags == MONITORINFOF_PRIMARY,
+            is_builtin: is_display_builtin(monitor_info_ex_w).unwrap_or(false),
         })
     }
 

@@ -1,12 +1,12 @@
-use std::str;
+use std::{ffi::CStr, str};
 use xcb::x::{Atom, GetAtomName};
 use xcb::{
     Connection, Xid,
     randr::{
-        GetCrtcInfo, GetMonitors, GetOutputInfo, GetScreenResources, Mode, ModeFlag, ModeInfo,
-        Output, Rotation,
+        GetCrtcInfo, GetMonitors, GetOutputInfo, GetOutputProperty, GetScreenResources, Mode,
+        ModeFlag, ModeInfo, Output, Rotation,
     },
-    x::{ATOM_RESOURCE_MANAGER, ATOM_STRING, GetProperty, Screen},
+    x::{ATOM_ANY, ATOM_RESOURCE_MANAGER, ATOM_STRING, GetProperty, Screen},
 };
 
 use crate::DisplayInfo;
@@ -108,6 +108,69 @@ fn get_rotation_frequency(
     Ok((rotation, frequency))
 }
 
+fn get_atom(conn: &Connection, name: &str) -> DIResult<Atom> {
+    let atom_cookie = conn.send_request(&xcb::x::InternAtom {
+        only_if_exists: true,
+        name: name.as_bytes(),
+    });
+    let atom_reply = conn.wait_for_reply(atom_cookie)?;
+    let atom = atom_reply.atom();
+
+    if atom.is_none() {
+        return Err(DIError::new(format!("{name} not supported")));
+    }
+
+    Ok(atom)
+}
+
+fn get_output_edid(conn: &Connection, output: Output) -> DIResult<Vec<u8>> {
+    let atom = get_atom(conn, "EDID")?;
+
+    let get_output_property_cookie = conn.send_request(&GetOutputProperty {
+        output,
+        property: atom,
+        r#type: ATOM_ANY,
+        long_offset: 0,
+        long_length: 128,
+        delete: false,
+        pending: false,
+    });
+    let get_output_property_reply = conn.wait_for_reply(get_output_property_cookie)?;
+
+    Ok(get_output_property_reply.data::<u8>().to_vec())
+}
+
+fn is_builtin_edid(edid: &[u8]) -> bool {
+    const DESCRIPTOR_OFFSET: usize = 0x36;
+
+    for i in 0..4 {
+        let offset = DESCRIPTOR_OFFSET + i * 18;
+        if offset + 5 >= edid.len() {
+            break;
+        }
+
+        if edid[offset] == 0xFC {
+            let text = &edid[offset + 5..offset + 18];
+            if let Ok(name) = CStr::from_bytes_until_nul(text)
+                && name.to_string_lossy().contains("Internal")
+            {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn is_builtin_output(conn: &Connection, output: Output, name: &str) -> DIResult<bool> {
+    if name.starts_with("eDP") || name.starts_with("LVDS") {
+        return Ok(true);
+    }
+
+    let edid = get_output_edid(conn, output)?;
+    Ok(is_builtin_edid(&edid))
+}
+
 pub fn get_all() -> DIResult<Vec<DisplayInfo>> {
     let (conn, index) = Connection::connect(None)?;
 
@@ -165,6 +228,7 @@ pub fn get_all() -> DIResult<Vec<DisplayInfo>> {
             scale_factor,
             frequency,
             is_primary: monitor_info.primary(),
+            is_builtin: is_builtin_output(&conn, *output, &name).unwrap_or(false),
         });
     }
 

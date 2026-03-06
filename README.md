@@ -37,6 +37,7 @@ fn main() {
 - `scale_factor` f32 - Output device's pixel scale factor.
 - `frequency` f32 - The display refresh rate.
 - `is_primary` bool - Whether the screen is the main screen
+- `is_builtin` bool - Whether the screen is builtin
 
 ## Linux requirements
 

@@ -3,7 +3,7 @@ use objc2_app_kit::NSScreen;
 use objc2_core_foundation::{CGPoint, CGRect};
 use objc2_core_graphics::{
     CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyDisplayMode, CGDisplayIsMain, CGDisplayMode,
-    CGDisplayRotation, CGDisplayScreenSize, CGError, CGGetActiveDisplayList,
+    CGDisplayIsBuiltin, CGDisplayRotation, CGDisplayScreenSize, CGError, CGGetActiveDisplayList,
     CGGetDisplaysWithPoint,
 };
 use objc2_foundation::{NSNumber, NSString};
@@ -53,6 +53,7 @@ impl DisplayInfo {
 
             let size_mm = CGDisplayScreenSize(id);
             let is_primary = CGDisplayIsMain(id);
+            let is_builtin = CGDisplayIsBuiltin(id);
 
             Ok(DisplayInfo {
                 id,
@@ -70,6 +71,7 @@ impl DisplayInfo {
                 frequency,
                 scale_factor,
                 is_primary,
+                is_builtin,
             })
         }
     }

@@ -45,6 +45,7 @@ impl From<&OutputInfo> for DisplayInfo {
             scale_factor,
             frequency,
             is_primary: false,
+            is_builtin: false,
         }
     }
 }

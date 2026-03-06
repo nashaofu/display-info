@@ -63,6 +63,8 @@ pub struct DisplayInfo {
     pub frequency: f32,
     /// Whether the screen is the main screen
     pub is_primary: bool,
+    /// Whether the screen is builtin
+    pub is_builtin: bool,
 }
 
 impl DisplayInfo {
