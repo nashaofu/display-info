@@ -1,6 +1,6 @@
 [package]
 name = "display-info"
-version = "0.5.7"
+version = "0.5.8"
 edition = "2024"
 description = "Cross-platform get display info"
 license = "Apache-2.0"
