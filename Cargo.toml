@@ -1,6 +1,6 @@
 [package]
 name = "display-info"
-version = "0.5.8"
+version = "0.5.9"
 edition = "2024"
 description = "Cross-platform get display info"
 license = "Apache-2.0"
@@ -36,5 +36,5 @@ windows = { version = "0.62", features = [
 ] }
 
 [target.'cfg(all(target_family = "unix", not(target_os = "macos")))'.dependencies]
-xcb = { version = "1.6", features = ["randr"] }
+xcb = { version = "1.7", features = ["randr"] }
 smithay-client-toolkit = { version = "0.20", default-features = false }
